@@ -127,7 +127,7 @@ void process_next_chunk(FILE *input_image) {
   }
   else if (chunk_id == DAOX) {
     /**
-     * DAOI (DAO Information) format:
+     * DAOX (DAO Information) format:
      *   4 B   32bit   Chunk size (bytes) little endian
      *   14 B          UPC
      *   4 B   32bit   Toc type
@@ -139,20 +139,32 @@ void process_next_chunk(FILE *input_image) {
      *   8 B  64bit   Index0 (Pre gap)
      *   8 B  64bit   Index1 (Start of track)
      *   8 B  64bit   Index2 (End of track + 1)
-     *   2 B          Unknown
+     *   2 B          Unknown (NOT THERE?)
      */
     // Chunk Size
     fread32u(input_image);
 
     // Skip UPC
-    fseek(input_image, 14, SEEK_CUR);
+    //fseek(input_image, 14, SEEK_CUR);
+
+    uint8_t buffer1[14];
+    if (fread(buffer1, sizeof(uint8_t), 14, input_image) != 14) {
+      fprintf(stderr, "Error reading 14 bytes from file: %s\n", strerror(errno));
+      exit(EXIT_FAILURE);
+    }
 
     uint32_t toc_type    = fread32u(input_image);
     uint8_t first_track = fread8u(input_image);
     uint8_t last_track  = fread8u(input_image);
 
     // Skip ISRC Code
-    fseek(input_image, 8, SEEK_CUR);
+    //fseek(input_image, 8, SEEK_CUR);
+
+    uint8_t buffer2[8];
+    if (fread(buffer2, sizeof(uint8_t), 8, input_image) != 8) {
+      fprintf(stderr, "Error reading from file: %s\n", strerror(errno));
+      exit(EXIT_FAILURE);
+    }
 
     uint32_t sector_size = fread32u(input_image);
     uint32_t mode        = fread32u(input_image);
@@ -162,6 +174,12 @@ void process_next_chunk(FILE *input_image) {
 
     printf("DAOX at 0x%X:\tSize - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X, Sector Size - %dB\n", start_offset, chunk_size, toc_type, first_track, last_track, sector_size);
     printf("\t\t\tMode - 0x%X, Index0 (Pre gap) - 0x%X, Index1 (Start of track) - 0x%X, Index2 (End of track + 1) - 0x%X\n", mode, index0, index1, index2);
+    printf("\t\t\tUPC - 0x");
+    int i;
+    for (i=0;i<14;i++) printf("%X ", buffer1[i]);
+    printf("\n\t\t\tISRC Code - 0x");
+    for (i=0;i<8;i++) printf("%X ", buffer2[i]);
+    printf("\n");
   }
   else if (chunk_id == CDTX) {
     /**
