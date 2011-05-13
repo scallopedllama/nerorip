@@ -79,11 +79,30 @@ void process_next_chunk(FILE *input_image) {
 
   if (chunk_id == CUES || chunk_id == CUEX) {
     /**
-     * CUES (Cue Sheet) Format:
-     *   Undocumented
+     * CUE / CUEX (Cue Sheet) Format:
+     *   Indicates a disc at once image
+     *   Chunk size = (# tracks + 1) * 16
+     * ---
+     * 1 B     Mode -- 41 = mode2, 01 = audio
+     * 1 B     Track number                 (first is 0)
+     * 1 B     Index                        (first is 0)
+     * 1 B     00
+     * 4 B     V1: MM:SS:FF=0; V2: LBA      (-150 (0xffffff6a) (MSF = 00:00:00))
+     * ---
+     * 1 B     Mode
+     * 1 B     Track number
+     * 1 B     Index                        (starts at 0)
+     * 1 B     00
+     * 4 B     V1: MMSSFF; V2: LBA          (MMSSFF = index) (LBA starts with index 0)
+     * ... Repeat for each track in session
+     * ---
+     * 4 B    mm AA 01 00   mm = mode
+     * 4 B    V1: Last MMSSFF; V2: Last LBA (MMSSFF == index1 + length)
      */
     // CUES and CUEX are both followed by a chunk size value
     printf("%s at 0x%X:\tSize - %dB\n", (chunk_id == CUES ? "CUES" : "CUEX"), start_offset, chunk_size);
+
+
 
     // Skip that data and the pointless additional 4 bytes
     fseek(input_image, chunk_size, SEEK_CUR);
@@ -91,17 +110,20 @@ void process_next_chunk(FILE *input_image) {
   else if (chunk_id == DAOI) {
     /**
      * DAOI (DAO Information) format:
-     *   4 B   32bit   Chunk size (bytes) little endian
-     *   14 B          UPC
-     *   4 B   32bit   Toc type
-     *   1 B   8bit   First track
-     *   1 B   8bit   Last track
-     *   12 B          ISRC Code
-     *   4 B   32bit   Sector size
-     *   4 B   32bit   Mode
-     *   4 B   32bit   Index0 (Pre gap)
-     *   4 B   32bit   Index1 (Start of track)
-     *   4 B   32bit   Index2 (End of track + 1)
+     *   4  B   Chunk size (bytes) again        (= (# tracks * 30) + 22)
+     *   14 B   UPC?
+     *   1  B   Toc type                        (0x20 = Mode2, 0x00 = Audio?)
+     *   1  B   close_cd?                       (1 = doesn't work, usually 0)
+     *   1  B   First track                     (Usually 0x01)
+     *   1  B   Last track                      (Usually = # tracks)
+     * ---
+     *   10 B   ISRC Code?
+     *   4  B   Sector size
+     *   4  B   Mode                            (mode2 = 0x03000001, audio = 0x07000001)
+     *   4  B   Index0 start offset
+     *   4  B   Index1 start offset             (= index0 + pregap length)
+     *   4  B   Next offset                     (= index1 + track length
+     * ... Repeat for each track in this session
      */
     // Chunk Size
     fread32u(input_image);
@@ -128,18 +150,20 @@ void process_next_chunk(FILE *input_image) {
   else if (chunk_id == DAOX) {
     /**
      * DAOX (DAO Information) format:
-     *   4 B   32bit   Chunk size (bytes) little endian
-     *   14 B          UPC
-     *   4 B   32bit   Toc type
-     *   1 B   8bit   First track
-     *   1 B   8bit   Last track
-     *   8 B          ISRC Code
-     *   4 B  32bit   Sector size
-     *   4 B  32bit   Mode
-     *   8 B  64bit   Index0 (Pre gap)
-     *   8 B  64bit   Index1 (Start of track)
-     *   8 B  64bit   Index2 (End of track + 1)
-     *   2 B          Unknown (NOT THERE?)
+     *   4  B    Chunk size (bytes) again    ( = (# tracks * 42) + 22 )
+     *   14 B    UPC?
+     *   1  B    Toc type                    (0x20 = Mode2, 0x00 = Audio?)
+     *   1  B    Close CD?                   (1 = doesn't work)
+     *   1  B    First track                 (Usually 0x01)
+     *   1  B    Last track                  (Usually = tracks)
+     * ---
+     *   10 B    ISRC Code?
+     *   4  B    Sector size
+     *   4  B    Mode                        (mode2 = 0x03000001, audio = 0x07000001)
+     *   8  B    Index0 start offset
+     *   8  B    Index1                      (= index0 + pregap length)
+     *   8  B    Next offset                 (= index1 + track length)
+     *   ... Repeat for each track in session
      */
     // Chunk Size
     fread32u(input_image);
@@ -192,11 +216,13 @@ void process_next_chunk(FILE *input_image) {
   else if (chunk_id == ETNF) {
     /**
      * ETNF (Extended Track Information) format:
-     *   4 B  32bit   Track offset in image
-     *   4 B  32bit   Track length (bytes)
-     *   4 B  32bit   Mode
-     *   4 B  32bit   Start lba on disc
-     *   4 B       ?
+     * Multisession / TAO Only
+     *   4 B    Start offset
+     *   4 B    Length (bytes)
+     *   4 B    Mode                    (011 (0x03) = mode2/2336, 110 (0x06) = mode2/2352, 111 (0x07) = audio/2352)
+     *   4 B    Start lba
+     *   4 B    00
+     * ... Repeat for each track (in session)
      */
     uint32_t track_offset = fread32u(input_image);
     uint32_t track_length = fread32u(input_image);
@@ -209,11 +235,12 @@ void process_next_chunk(FILE *input_image) {
   else if (chunk_id == ETN2) {
     /**
      * ETN2 (Extended Track Information) format:
-     *   8 B  64bit   Track offset in image
-     *   8 B  64bit   Track length (bytes)
-     *   4 B  32bit   Mode
-     *   4 B  32bit   Start lba on disc
-     *   4 B       ?
+     *   8 B    Start offset
+     *   8 B    Length (bytes)
+     *   4 B    Mode                    (011 (0x03) = mode2/2336, 110 (0x06) = mode2/2352, 111 (0x07) = audio/2352)
+     *   4 B    Start lba
+     *   8 B    00
+     * ... Repeat for each track (in session)
      */
     uint64_t track_offset = fread64u(input_image);
     uint64_t track_length = fread64u(input_image);
@@ -226,7 +253,7 @@ void process_next_chunk(FILE *input_image) {
   else if (chunk_id == SINF) {
     /**
      * SINF (Session Information) Format:
-     *   4 B  32bit   # tracks in session
+     *   4 B    Number tracks in session
      */
     uint32_t number_tracks = fread32u(input_image);
 
