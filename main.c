@@ -82,7 +82,6 @@ void process_next_chunk(FILE *input_image) {
      *   Undocumented
      */
     // CUES and CUEX are both followed by a chunk size value
-    uint32_t chunk_size = fread32u(input_image);
     printf("CUE : Size - %d\n", chunk_size);
 
     // Skip that data and the pointless additional 4 bytes
