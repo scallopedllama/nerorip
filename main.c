@@ -141,7 +141,7 @@ void process_next_chunk(FILE *input_image) {
     printf("\t\t\tSession has %d tracks:\n", number_tracks);
 
 
-    i = 0;
+    int i = 0;
     for (i = 0; i < number_tracks; i++)
     {
       // Skip ISRC Code
@@ -152,8 +152,7 @@ void process_next_chunk(FILE *input_image) {
       uint32_t index0      = fread32u(input_image);
       uint32_t index1      = fread32u(input_image);
       uint32_t next_offset = fread32u(input_image);
-      char str_mode[5] = (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other"));
-      printf("\t\t\t\tTrack %d: Sector Size - %d B, Mode - %s, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, sector_size, str_mode, index0, index1, next_offset);
+      printf("\t\t\t\tTrack %d: Sector Size - %d B, Mode - %s, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, sector_size, (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other")), index0, index1, next_offset);
     }
   }
   else if (chunk_id == DAOX) {
@@ -185,10 +184,10 @@ void process_next_chunk(FILE *input_image) {
     uint8_t first_track = fread8u(input_image);
     uint8_t last_track  = fread8u(input_image);
 
-    printf("DAOI at 0x%X:\tSize - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X\n", start_offset, chunk_size, toc_type, first_track, last_track);
+    printf("DAOX at 0x%X:\tSize - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X\n", start_offset, chunk_size, toc_type, first_track, last_track);
     printf("\t\t\tSession has %d tracks:\n", number_tracks);
 
-    i = 0;
+    int i = 0;
     for (i = 0; i < number_tracks; i++)
     {
       // Skip ISRC Code
@@ -199,8 +198,7 @@ void process_next_chunk(FILE *input_image) {
       uint64_t index0      = fread64u(input_image);
       uint64_t index1      = fread64u(input_image);
       uint64_t next_offset = fread64u(input_image);
-      char str_mode[5] = (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other"));
-      printf("\t\t\t\tTrack %d: Sector Size - %d B, Mode - %s, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, sector_size, str_mode, index0, index1, next_offset);
+      printf("\t\t\t\tTrack %d: Sector Size - %d B, Mode - %s, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, sector_size, (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other")), index0, index1, next_offset);
     }
   }
   else if (chunk_id == CDTX) {
