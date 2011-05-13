@@ -219,6 +219,8 @@ void process_next_chunk(FILE *input_image) {
      *   8  B    Index1                      (= index0 + pregap length)
      *   8  B    Next offset                 (= index1 + track length)
      *   ... Repeat for each track in session
+     *   
+     *  It looks like either Index0 or Index1 is the file location where the actual image data lies. DC images' audio data is just straight 00's.
      */
     // # tracks
     int number_tracks = (fread32u(input_image) - 22) / 30;
