@@ -212,7 +212,7 @@ void process_next_chunk(FILE *input_image) {
      */
     uint32_t number_tracks = fread32u(input_image);
 
-    printf("SINF at 0x%X:\tSize - %dB, Number of Tracks: %d\n", start_offset, number_tracks);
+    printf("SINF at 0x%X:\tSize - %dB, Number of Tracks: %d\n", start_offset, chunk_size, number_tracks);
   }
   else if (chunk_id == MTYP) {
     /**
