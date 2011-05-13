@@ -73,6 +73,7 @@ uint64_t fread64u(FILE* input) {
  */
 void process_next_chunk(FILE *input_image) {
   // The chunk ID and chunk size are always 32 bit integers
+  const long int start_offset = ftell(input_image);
   const uint32_t chunk_id = fread32u(input_image);
   const uint32_t chunk_size = fread32u(input_image);
 
@@ -82,7 +83,7 @@ void process_next_chunk(FILE *input_image) {
      *   Undocumented
      */
     // CUES and CUEX are both followed by a chunk size value
-    printf("%s: Size - %dB\n", (chunk_id == CUES ? "CUES" : "CUEX"), chunk_size);
+    printf("%s at 0x%X:\tSize - %dB\n", (chunk_id == CUES ? "CUES" : "CUEX"), start_offset, chunk_size);
 
     // Skip that data and the pointless additional 4 bytes
     fseek(input_image, chunk_size, SEEK_CUR);
@@ -121,8 +122,8 @@ void process_next_chunk(FILE *input_image) {
     uint32_t index1      = fread32u(input_image);
     uint32_t index2      = fread32u(input_image);
 
-    printf("DAOI: Size - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X, Sector Size - %dB\n", chunk_size, toc_type, first_track, last_track, sector_size);
-    printf("      Mode - 0x%X, Index0 (Pre gap) - 0x%X, Index1 (Start of track) - 0x%X, Index2 (End of track + 1) - 0x%X\n", mode, index0, index1, index2);
+    printf("DAOI at 0x%X:\tSize - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X, Sector Size - %dB\n", start_offset, chunk_size, toc_type, first_track, last_track, sector_size);
+    printf("\t\t\tMode - 0x%X, Index0 (Pre gap) - 0x%X, Index1 (Start of track) - 0x%X, Index2 (End of track + 1) - 0x%X\n", mode, index0, index1, index2);
   }
   else if (chunk_id == DAOX) {
     /**
@@ -159,15 +160,15 @@ void process_next_chunk(FILE *input_image) {
     uint64_t index1      = fread64u(input_image);
     uint64_t index2      = fread64u(input_image);
 
-    printf("DAOX: Size - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X, Sector Size - %dB\n", chunk_size, toc_type, first_track, last_track, sector_size);
-    printf("      Mode - 0x%X, Index0 (Pre gap) - 0x%X, Index1 (Start of track) - 0x%X, Index2 (End of track + 1) - 0x%X\n", mode, index0, index1, index2);
+    printf("DAOX at 0x%X:\tSize - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X, Sector Size - %dB\n", start_offset, chunk_size, toc_type, first_track, last_track, sector_size);
+    printf("\t\t\tMode - 0x%X, Index0 (Pre gap) - 0x%X, Index1 (Start of track) - 0x%X, Index2 (End of track + 1) - 0x%X\n", mode, index0, index1, index2);
   }
   else if (chunk_id == CDTX) {
     /**
      * CDTX (CD Text) format:
      *   18 B           CD-text pack
      */
-    printf("CDTX: Size - %dB\n", chunk_size);
+    printf("CDTX at 0x%X:\tSize - %dB\n", start_offset, chunk_size);
     fseek(input_image, chunk_size, SEEK_CUR);
   }
   else if (chunk_id == ETNF) {
@@ -185,7 +186,7 @@ void process_next_chunk(FILE *input_image) {
     uint32_t start_lba    = fread32u(input_image);
     uint32_t mystery_int  = fread32u(input_image);
 
-    printf("ENTF: Size - %dB, Track Offset - 0x%X, Track Length - 0x%X, Mode - 0x%X, Start LBA - 0x%X, ? - 0x%X\n", chunk_size, track_offset, track_length, track_mode, start_lba, mystery_int);
+    printf("ENTF at 0x%X:\tSize - %dB, Track Offset - 0x%X, Track Length - 0x%X, Mode - 0x%X, Start LBA - 0x%X, ? - 0x%X\n", start_offset, chunk_size, track_offset, track_length, track_mode, start_lba, mystery_int);
   }
   else if (chunk_id == ETN2) {
     /**
@@ -202,7 +203,7 @@ void process_next_chunk(FILE *input_image) {
     uint32_t start_lba    = fread32u(input_image);
     uint32_t mystery_int  = fread32u(input_image);
 
-    printf("ENT2: Size - %dB, Track Offset - 0x%X, Track Length - 0x%X, Mode - 0x%X, Start LBA - 0x%X, ? - 0x%X\n", chunk_size, track_offset, track_length, track_mode, start_lba, mystery_int);
+    printf("ENT2 at 0x%X:\tSize - %dB, Track Offset - 0x%X, Track Length - 0x%X, Mode - 0x%X, Start LBA - 0x%X, ? - 0x%X\n", start_offset, chunk_size, track_offset, track_length, track_mode, start_lba, mystery_int);
   }
   else if (chunk_id == SINF) {
     /**
@@ -211,7 +212,7 @@ void process_next_chunk(FILE *input_image) {
      */
     uint32_t number_tracks = fread32u(input_image);
 
-    printf("SINF: Size - %dB, Number of Tracks: %d\n", number_tracks);
+    printf("SINF at 0x%X:\tSize - %dB, Number of Tracks: %d\n", start_offset, number_tracks);
   }
   else if (chunk_id == MTYP) {
     /**
@@ -220,14 +221,14 @@ void process_next_chunk(FILE *input_image) {
      */
     uint32_t mystery_int  = fread32u(input_image);
 
-    printf("MTYP: Size - %dB, ? - 0x%X\n", chunk_size, mystery_int);
+    printf("MTYP at 0x%X:\tSize - %dB, ? - 0x%X\n", start_offset, chunk_size, mystery_int);
   }
   else if (chunk_id == END) {
-    printf("END!\n");
+    printf("END! at 0x%X\n", start_offset);
     exit(EXIT_SUCCESS);
   }
   else {
-    fprintf(stderr, "Unrecognized Chunk ID: 0x%X. Aborting.\n", chunk_id);
+    fprintf(stderr, "Unrecognized Chunk ID: 0x%X. Aborting.\n", start_offset, chunk_id);
     exit(EXIT_FAILURE);
   }
 }
