@@ -114,6 +114,7 @@ void process_next_chunk(FILE *input_image) {
      */
     int number_tracks = chunk_size / 16 - 1;
     static int session_number = 1;
+    static int track_number = 1;
 
     uint8_t session_mode = fread8u(input_image);
 
@@ -126,20 +127,21 @@ void process_next_chunk(FILE *input_image) {
     printf("%s at 0x%X:\tSize - %d B, Session %d has %d tracks using mode %s and starting at 0x%X.\n", (chunk_id == CUES ? "CUES" : "CUEX"), start_offset, chunk_size, session_number, number_tracks, (session_mode == 0x41 ? "Mode2" : (session_mode == 0x01 ? "Audio" : "Unknown")), session_start_LBA);
 
     int i = 1;
-    for (i = 1; i <= number_tracks; i++) {
+    for (i = 1; i <= number_tracks; i++, track_number++) {
       uint8_t pretrack_mode  = fread8u(input_image);
-      assert(fread8u(input_image) == i);    // Track number
+      assert(fread8u(input_image) == track_number);    // Track number
       assert(fread8u(input_image) == 0x00); // Track index
       assert(fread8u(input_image) == 0x00); // 0x00
       uint32_t pretrack_LBA = fread32u(input_image);
 
       uint8_t track_mode = fread8u(input_image);
-      assert(fread8u(input_image) == i);    // Track number
+      assert(fread8u(input_image) == track_number);    // Track number
       assert(fread8u(input_image) == 0x01); // Track index
       assert(fread8u(input_image) == 0x00); // 0x00
       uint32_t track_LBA = fread32u(input_image);
 
-      printf ("\t\t\t\tTrack %d: Index 0 uses mode %s and starts at LBA 0x%X, Index 1 uses mode %s and starts at LBA 0x%X.\n", (pretrack_mode == 0x41 ? "Mode2" : (pretrack_mode == 0x01 ? "Audio" : "Unknown")), pretrack_LBA, (track_mode == 0x41 ? "Mode2" : (track_mode == 0x01 ? "Audio" : "Unknown")), track_LBA);
+      printf ("\t\t\t\tTrack %d: Index 0 uses mode %s and starts at LBA 0x%X, ", i, (pretrack_mode == 0x41 ? "Mode2" : (pretrack_mode == 0x01 ? "Audio" : "Unknown")), pretrack_LBA);
+      printf("Index 1 uses mode %s and starts at LBA 0x%X.\n", (track_mode == 0x41 ? "Mode2" : (track_mode == 0x01 ? "Audio" : "Unknown")), track_LBA);
     }
 
     // Skip junk
