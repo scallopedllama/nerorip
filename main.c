@@ -72,6 +72,7 @@ uint64_t fread64u(FILE* input) {
  * Process the next chunk of data starting from the file's current position.
  */
 void process_next_chunk(FILE *input_image) {
+  // Chunk data came from the source for libdiscmage at http://www.koders.com/c/fidCFCF40C7DBB1F855208886B92C3C77ED6DBE45F3.aspx
   // The chunk ID and chunk size are always 32 bit integers
   const long int start_offset = ftell(input_image);
   const uint32_t chunk_id = fread32u(input_image);
@@ -82,8 +83,8 @@ void process_next_chunk(FILE *input_image) {
      * CUE / CUEX (Cue Sheet) Format:
      *   Indicates a disc at once image
      *   Chunk size = (# tracks + 1) * 16
-     * ---
-     * 1 B     Mode -- 41 = mode2, 01 = audio
+     *
+     * 1 B     Mode                         (0x41 = mode2, 0x01 = audio)
      * 1 B     Track number                 (first is 0)
      * 1 B     Index                        (first is 0)
      * 1 B     00
@@ -125,27 +126,35 @@ void process_next_chunk(FILE *input_image) {
      *   4  B   Next offset                     (= index1 + track length
      * ... Repeat for each track in this session
      */
-    // Chunk Size
-    fread32u(input_image);
+    // # tracks
+    int number_tracks = (fread32u(input_image) - 22) / 30;
 
     // Skip UPC
     fseek(input_image, 14, SEEK_CUR);
 
-    uint32_t toc_type    = fread32u(input_image);
+    uint8_t toc_type    = fread8u(input_image);
+    fread8u(input_image); // close cd
     uint8_t first_track = fread8u(input_image);
     uint8_t last_track  = fread8u(input_image);
 
-    // Skip ISRC Code
-    fseek(input_image, 12, SEEK_CUR);
+    printf("DAOI at 0x%X:\tSize - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X\n", start_offset, chunk_size, toc_type, first_track, last_track);
+    printf("\t\t\tSession has %d tracks:\n", number_tracks);
 
-    uint32_t sector_size = fread32u(input_image);
-    uint32_t mode        = fread32u(input_image);
-    uint32_t index0      = fread32u(input_image);
-    uint32_t index1      = fread32u(input_image);
-    uint32_t index2      = fread32u(input_image);
 
-    printf("DAOI at 0x%X:\tSize - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X, Sector Size - %dB\n", start_offset, chunk_size, toc_type, first_track, last_track, sector_size);
-    printf("\t\t\tMode - 0x%X, Index0 (Pre gap) - 0x%X, Index1 (Start of track) - 0x%X, Index2 (End of track + 1) - 0x%X\n", mode, index0, index1, index2);
+    i = 0;
+    for (i = 0; i < number_tracks; i++)
+    {
+      // Skip ISRC Code
+      fseek(input_image, 10, SEEK_CUR);
+
+      uint32_t sector_size = fread32u(input_image);
+      uint32_t mode        = fread32u(input_image);
+      uint32_t index0      = fread32u(input_image);
+      uint32_t index1      = fread32u(input_image);
+      uint32_t next_offset = fread32u(input_image);
+      char str_mode[5] = (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other"));
+      printf("\t\t\t\tTrack %d: Sector Size - %d B, Mode - %s, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, sector_size, str_mode, index0, index1, next_offset);
+    }
   }
   else if (chunk_id == DAOX) {
     /**
@@ -165,45 +174,34 @@ void process_next_chunk(FILE *input_image) {
      *   8  B    Next offset                 (= index1 + track length)
      *   ... Repeat for each track in session
      */
-    // Chunk Size
-    fread32u(input_image);
+    // # tracks
+    int number_tracks = (fread32u(input_image) - 22) / 30;
 
     // Skip UPC
-    //fseek(input_image, 14, SEEK_CUR);
+    fseek(input_image, 14, SEEK_CUR);
 
-    uint8_t buffer1[14];
-    if (fread(buffer1, sizeof(uint8_t), 14, input_image) != 14) {
-      fprintf(stderr, "Error reading 14 bytes from file: %s\n", strerror(errno));
-      exit(EXIT_FAILURE);
-    }
-
-    uint32_t toc_type    = fread32u(input_image);
+    uint8_t toc_type    = fread8u(input_image);
+    fread8u(input_image); // close cd
     uint8_t first_track = fread8u(input_image);
     uint8_t last_track  = fread8u(input_image);
 
-    // Skip ISRC Code
-    //fseek(input_image, 8, SEEK_CUR);
+    printf("DAOI at 0x%X:\tSize - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X\n", start_offset, chunk_size, toc_type, first_track, last_track);
+    printf("\t\t\tSession has %d tracks:\n", number_tracks);
 
-    uint8_t buffer2[8];
-    if (fread(buffer2, sizeof(uint8_t), 8, input_image) != 8) {
-      fprintf(stderr, "Error reading from file: %s\n", strerror(errno));
-      exit(EXIT_FAILURE);
+    i = 0;
+    for (i = 0; i < number_tracks; i++)
+    {
+      // Skip ISRC Code
+      fseek(input_image, 10, SEEK_CUR);
+
+      uint32_t sector_size = fread32u(input_image);
+      uint32_t mode        = fread32u(input_image);
+      uint64_t index0      = fread64u(input_image);
+      uint64_t index1      = fread64u(input_image);
+      uint64_t next_offset = fread64u(input_image);
+      char str_mode[5] = (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other"));
+      printf("\t\t\t\tTrack %d: Sector Size - %d B, Mode - %s, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, sector_size, str_mode, index0, index1, next_offset);
     }
-
-    uint32_t sector_size = fread32u(input_image);
-    uint32_t mode        = fread32u(input_image);
-    uint64_t index0      = fread64u(input_image);
-    uint64_t index1      = fread64u(input_image);
-    uint64_t index2      = fread64u(input_image);
-
-    printf("DAOX at 0x%X:\tSize - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X, Sector Size - %dB\n", start_offset, chunk_size, toc_type, first_track, last_track, sector_size);
-    printf("\t\t\tMode - 0x%X, Index0 (Pre gap) - 0x%X, Index1 (Start of track) - 0x%X, Index2 (End of track + 1) - 0x%X\n", mode, index0, index1, index2);
-    printf("\t\t\tUPC - 0x");
-    int i;
-    for (i=0;i<14;i++) printf("%X ", buffer1[i]);
-    printf("\n\t\t\tISRC Code - 0x");
-    for (i=0;i<8;i++) printf("%X ", buffer2[i]);
-    printf("\n");
   }
   else if (chunk_id == CDTX) {
     /**
