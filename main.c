@@ -89,22 +89,28 @@ void process_next_chunk(FILE *input_image) {
      * 1 B     Track number                 0x00
      * 1 B     Index                        0x00
      * 1 B     00
-     * 4 B     V1: MM:SS:FF=0; V2: LBA      (-150 (0xffffff6a) (MSF = 00:00:00))
+     * 4 B     V1: MM:SS:FF=0; V2: StartLBA ((LBA for S1T1 is 0xffffff6a) (MSF = 00:00:00))
      * ---
      * 1 B     Mode
      * 1 B     Track number                 (First is 1, increments over tracks in ALL sessions)
      * 1 B     Index                        (0x00, which is pregap for track)
      * 1 B     00
-     * 4 B     V1: MMSSFF; V2: LBA          (MMSSFF = index) (First LBA is 0xffffff6a)
+     * 4 B     V1: MMSSFF; V2: LBA          (MMSSFF = index) (S1T1's LBA is 0xffffff6a)
      * 1 B     Mode
      * 1 B     Track number                 (First is 1, increments over tracks in ALL sessions)
      * 1 B     Index                        (0x01, which is main track)
      * 1 B     00
-     * 4 B     V1: MMSSFF; V2: LBA          (MMSSFF = index) (LBA may be offset from index 0x00 LBA)
+     * 4 B     V1: MMSSFF; V2: LBA          (MMSSFF = index) (LBA is offset from index 0 LBA)
      * ... Repeat for each track in session
      * ---
      * 4 B    mm AA 01 00   mm = mode
      * 4 B    V1: Last MMSSFF; V2: Last LBA (MMSSFF == index1 + length)
+     *
+     * About the LBA: The first LBA is the starting LBA for this session. If it's the first session, it's always 0xffffff6a.
+     *                The middle part repeats once for each session. The first LBA is the pre-start LBA for the track and the
+     *                second is an offset from the first to indicate where the track actually begins.
+     *                Unless the track is audio with an intro bit (where the player starts at a negative time), the second LBA
+     *                in each loop is 0x00000000
      */
     int number_tracks = chunk_size / 16 - 1;
 
