@@ -141,8 +141,8 @@ void process_next_chunk(FILE *input_image) {
     printf("\t\t\tSession has %d tracks:\n", number_tracks);
 
 
-    int i = 0;
-    for (i = 0; i < number_tracks; i++)
+    int i = 1;
+    for (i = 1; i <= number_tracks; i++)
     {
       // Skip ISRC Code
       fseek(input_image, 10, SEEK_CUR);
@@ -187,8 +187,8 @@ void process_next_chunk(FILE *input_image) {
     printf("DAOX at 0x%X:\tSize - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X\n", start_offset, chunk_size, toc_type, first_track, last_track);
     printf("\t\t\tSession has %d tracks:\n", number_tracks);
 
-    int i = 0;
-    for (i = 0; i < number_tracks; i++)
+    int i = 1;
+    for (i = 1; i <= number_tracks; i++)
     {
       // Skip ISRC Code
       fseek(input_image, 10, SEEK_CUR);
