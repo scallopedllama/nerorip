@@ -147,8 +147,8 @@ void process_next_chunk(FILE *input_image) {
     // Skip UPC
     //fseek(input_image, 14, SEEK_CUR);
 
-    uint8_t buffer1[12];
-    if (fread(buffer1, sizeof(uint8_t), 12, input_image) != 12) {
+    uint8_t buffer1[14];
+    if (fread(buffer1, sizeof(uint8_t), 14, input_image) != 14) {
       fprintf(stderr, "Error reading 14 bytes from file: %s\n", strerror(errno));
       exit(EXIT_FAILURE);
     }
@@ -171,13 +171,12 @@ void process_next_chunk(FILE *input_image) {
     uint64_t index0      = fread64u(input_image);
     uint64_t index1      = fread64u(input_image);
     uint64_t index2      = fread64u(input_image);
-    uint16_t mystery_int = fread16u(input_image);
 
     printf("DAOX at 0x%X:\tSize - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X, Sector Size - %dB\n", start_offset, chunk_size, toc_type, first_track, last_track, sector_size);
-    printf("\t\t\tMode - 0x%X, Index0 (Pre gap) - 0x%X, Index1 (Start of track) - 0x%X, Index2 (End of track + 1) - 0x%X, ? - 0x%X\n", mode, index0, index1, index2, mystery_int);
+    printf("\t\t\tMode - 0x%X, Index0 (Pre gap) - 0x%X, Index1 (Start of track) - 0x%X, Index2 (End of track + 1) - 0x%X\n", mode, index0, index1, index2);
     printf("\t\t\tUPC - 0x");
     int i;
-    for (i=0;i<12;i++) printf("%X ", buffer1[i]);
+    for (i=0;i<14;i++) printf("%X ", buffer1[i]);
     printf("\n\t\t\tISRC Code - 0x");
     for (i=0;i<8;i++) printf("%X ", buffer2[i]);
     printf("\n");
