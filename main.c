@@ -4,6 +4,7 @@
 #include <string.h> // strerror()
 #include <stdint.h> // uintXX_t types
 #include <byteswap.h> // for bswap_XX functions
+#include <assert.h>
 
 #define NER5 0x4e455235
 #define NERO 0x4e45524f
@@ -85,21 +86,28 @@ void process_next_chunk(FILE *input_image) {
      *   Chunk size = (# tracks + 1) * 16
      *
      * 1 B     Mode                         (0x41 = mode2, 0x01 = audio)
-     * 1 B     Track number                 (first is 0)
-     * 1 B     Index                        (first is 0)
+     * 1 B     Track number                 0x00
+     * 1 B     Index                        0x00
      * 1 B     00
      * 4 B     V1: MM:SS:FF=0; V2: LBA      (-150 (0xffffff6a) (MSF = 00:00:00))
      * ---
      * 1 B     Mode
-     * 1 B     Track number
-     * 1 B     Index                        (starts at 0)
+     * 1 B     Track number                 (First is 1, increments over tracks in ALL sessions)
+     * 1 B     Index                        (0x00, which is pregap for track)
      * 1 B     00
-     * 4 B     V1: MMSSFF; V2: LBA          (MMSSFF = index) (LBA starts with index 0)
+     * 4 B     V1: MMSSFF; V2: LBA          (MMSSFF = index) (First LBA is 0xffffff6a)
+     * 1 B     Mode
+     * 1 B     Track number                 (First is 1, increments over tracks in ALL sessions)
+     * 1 B     Index                        (0x01, which is main track)
+     * 1 B     00
+     * 4 B     V1: MMSSFF; V2: LBA          (MMSSFF = index) (LBA may be offset from index 0x00 LBA)
      * ... Repeat for each track in session
      * ---
      * 4 B    mm AA 01 00   mm = mode
      * 4 B    V1: Last MMSSFF; V2: Last LBA (MMSSFF == index1 + length)
      */
+    int number_tracks = chunk_size / 16 - 1;
+
     // CUES and CUEX are both followed by a chunk size value
     printf("%s at 0x%X:\tSize - %dB\n", (chunk_id == CUES ? "CUES" : "CUEX"), start_offset, chunk_size);
 
@@ -224,9 +232,9 @@ void process_next_chunk(FILE *input_image) {
     uint32_t track_length = fread32u(input_image);
     uint32_t track_mode   = fread32u(input_image);
     uint32_t start_lba    = fread32u(input_image);
-    uint32_t mystery_int  = fread32u(input_image);
+    assert(fread32u(input_image) == 0x00);
 
-    printf("ENTF at 0x%X:\tSize - %dB, Track Offset - 0x%X, Track Length - 0x%X, Mode - 0x%X, Start LBA - 0x%X, ? - 0x%X\n", start_offset, chunk_size, track_offset, track_length, track_mode, start_lba, mystery_int);
+    printf("ENTF at 0x%X:\tSize - %d B, Track Offset - 0x%X, Track Length - %d B, Mode - %s, Start LBA - 0x%X\n", start_offset, chunk_size, track_offset, track_length, (track_mode == 0x03 ? "Mode2/2336" : (track_mode == 0x06 ? "Mode2/2352" : (track_mode == 0x07 ? "Audio/2352" : "Unknown"))), start_lba);
   }
   else if (chunk_id == ETN2) {
     /**
@@ -242,9 +250,9 @@ void process_next_chunk(FILE *input_image) {
     uint64_t track_length = fread64u(input_image);
     uint32_t track_mode   = fread32u(input_image);
     uint32_t start_lba    = fread32u(input_image);
-    uint32_t mystery_int  = fread32u(input_image);
+    assert(fread64u(input_image) == 0x00);
 
-    printf("ENT2 at 0x%X:\tSize - %dB, Track Offset - 0x%X, Track Length - 0x%X, Mode - 0x%X, Start LBA - 0x%X, ? - 0x%X\n", start_offset, chunk_size, track_offset, track_length, track_mode, start_lba, mystery_int);
+    printf("ENT2 at 0x%X:\tSize - %d B, Track Offset - 0x%X, Track Length - %d B, Mode - %s, Start LBA - 0x%X\n", start_offset, chunk_size, track_offset, track_length, (track_mode == 0x03 ? "Mode2/2336" : (track_mode == 0x06 ? "Mode2/2352" : (track_mode == 0x07 ? "Audio/2352" : "Unknown"))), start_lba);
   }
   else if (chunk_id == SINF) {
     /**
