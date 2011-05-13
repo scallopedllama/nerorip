@@ -118,7 +118,6 @@ void process_next_chunk(FILE *input_image) {
     uint8_t session_mode = fread8u(input_image);
 
     // Skip junk
-    assert(fread8u(input_image) == 0x00); // Mode
     assert(fread8u(input_image) == 0x00); // Track
     assert(fread8u(input_image) == 0x00); // 0x00
     assert(fread8u(input_image) == 0x00); // Index
