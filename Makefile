@@ -1,7 +1,7 @@
 all: neroripper
 
 neroripper: main.o nrg.o util.o
-	cc -Wall -Wextra -o neroripper main.o nrg.o util.o
+	cc -Wall -Wextra -o nerorip main.o nrg.o util.o
 
 main.o: main.c
 	cc -Wall -Wextra -c -o main.o main.c
