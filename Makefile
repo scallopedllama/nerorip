@@ -11,3 +11,6 @@ nrg.o: nrg.c
 
 util.o: util.c
 	cc -Wall -Wextra -c -o util.o util.c
+
+clean:
+	rm -f *.o nerorip
