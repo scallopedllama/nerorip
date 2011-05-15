@@ -104,7 +104,7 @@ void process_next_chunk(FILE *input_image) {
      * 4 B     V1: MMSSFF; V2: LBA          (MMSSFF = index) (LBA is where track actually starts)
      * ... Repeat for each track in session
      * ---
-     * 4 B    mm AA 01 00   mm = mode
+     * 4 B    mm AA 01 00   mm = mode (if version 2)
      * 4 B    V1: Last MMSSFF; V2: Last LBA (MMSSFF == index1 + length)
      *
      * About the LBA: The first LBA is the starting LBA for this session. If it's the first session, it's always 0xffffff6a.
@@ -146,7 +146,9 @@ void process_next_chunk(FILE *input_image) {
     }
 
     // Skip junk
-    assert(fread8u(input_image) == session_mode); // Mode
+    // TODO: track the version number and re-enable this assertion, but only for NRG_VER_55
+    //       assert(fread8u(input_image) == session_mode); // Mode
+    fread8u(input_image);
     assert(fread8u(input_image) == 0xaa);         // 0xAA
     assert(fread8u(input_image) == 0x01);         // 0x01
     assert(fread8u(input_image) == 0x00);         // 0x00
