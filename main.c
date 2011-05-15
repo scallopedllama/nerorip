@@ -1,3 +1,21 @@
+/*
+ * This file is part of nerorip. (c)2011 Joe Balough
+ *
+ * Nerorip is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Nerorip is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with nerorip.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -19,22 +37,22 @@ int main(int argc, char **argv) {
     fprintf(stderr, "  -h, --help\t\tDisplay this help message and exit\n");
     fprintf(stderr, "  -v, --version\t\tOutput version information and exit.\n\n");
     fprintf(stderr, "If output directory is omitted, image data is put in the same directory as the input file.\n\n");
-    
+
     fprintf(stderr, "For each track found in the image, Nero Image Ripper will output the following:\n");
     fprintf(stderr, "  one iso file named \"data.sSStTT.iso\" if the track is data and\n");
     fprintf(stderr, "  one wav file named \"audio.sSStTT.wav\" if the track is audio\n");
     fprintf(stderr, "where SS is the session number and TT is the track number.\n\n");
-    
+
     fprintf(stderr, "For example, if your disc image is like the following\n");
     fprintf(stderr, "  Session 1:\n    Track 1: Audio\n    Track 2: Data\n  Session 2:\n    Track 1: Data\n");
     fprintf(stderr, "the Nero Image Ripper will output the following files:\n");
     fprintf(stderr, "  audio.s01t01.wav, data.s01t02.iso, data.s02t03.iso\n");
     fprintf(stderr, "Note that the track number does not reset between sessions.\n\n");
-    
+
     fprintf(stderr, "Report all bugs at https://github.com/scallopedllama/nerorip\nVersion %s\n", VERSION);
     exit(EXIT_FAILURE);
   }
-  
+
   // Open file
   char *input_str = argv[1];
   FILE *input_image = fopen(input_str, "rb");

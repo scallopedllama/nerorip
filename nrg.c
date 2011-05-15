@@ -1,3 +1,21 @@
+/*
+ * This file is part of nerorip. (c)2011 Joe Balough
+ *
+ * Nerorip is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Nerorip is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with nerorip.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 #include "nrg.h"
 
 /**
@@ -152,7 +170,7 @@ void process_next_chunk(FILE *input_image) {
      *   8  B    Index1                      (= index0 + pregap length)
      *   8  B    Next offset                 (= index1 + track length)
      *   ... Repeat for each track in session
-     *   
+     *
      *  It looks like either Index0 or Index1 is the file location where the actual image data lies. DC images' audio data is just straight 00's.
      */
     // # tracks
