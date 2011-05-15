@@ -19,8 +19,9 @@
 #define MTYP 0x4d545950
 #define END  0x454e4421
 
-#define version1 1
-#define version2 2
+#define VERSION "0.1"
+#define NRG_VER_5 1
+#define NRG_VER_55 2
 
 
 /**
@@ -326,10 +327,36 @@ void process_next_chunk(FILE *input_image) {
 
 
 int main(int argc, char **argv) {
-  // TODO: Actually parse some command line arguments here
-  FILE *input_image = fopen("test.nrg", "rb");
+  // TODO: Actually parse arguments.
+  if (argc <= 1) {
+    fprintf(stderr, "Usage: %s [OPTIONS]... [INPUT FILE] [OUTPUT DIRECTORY]\n", argv[0]);
+    fprintf(stderr, "Nero Image Ripper takes a nero image file (.nrt extension) as input\n");
+    fprintf(stderr, "and attempts to extract the track data as either ISO or audio data.\n\n");
+    fprintf(stderr, "  -i, --info\t\tOnly disply information about the image file, do not rip\n");
+    fprintf(stderr, "  -h, --help\t\tDisplay this help message and exit\n");
+    fprintf(stderr, "  -v, --version\t\tOutput version information and exit.\n\n");
+    fprintf(stderr, "If output directory is omitted, image data is put in the same directory as the input file.\n\n");
+    
+    fprintf(stderr, "For each track found in the image, Nero Image Ripper will output the following:\n");
+    fprintf(stderr, "  one iso file named \"data.sSStTT.iso\" if the track is data and\n");
+    fprintf(stderr, "  one wav file named \"audio.sSStTT.wav\" if the track is audio\n");
+    fprintf(stderr, "where SS is the session number and TT is the track number.\n\n");
+    
+    fprintf(stderr, "For example, if your disc image is like the following\n");
+    fprintf(stderr, "  Session 1:\n    Track 1: Audio\n    Track 2: Data\n  Session 2:\n    Track 1: Data\n");
+    fprintf(stderr, "the Nero Image Ripper will output the following files:\n");
+    fprintf(stderr, "  audio.s01t01.wav, data.s01t02.iso, data.s02t03.iso\n");
+    fprintf(stderr, "Note that the track number does not reset between sessions.\n\n");
+    
+    fprintf(stderr, "Report all bugs at https://github.com/scallopedllama/nerorip\nVersion %s\n", VERSION);
+    exit(EXIT_FAILURE);
+  }
+  
+  // Open file
+  char *input_str = argv[1];
+  FILE *input_image = fopen(input_str, "rb");
   if (input_image == NULL) {
-    fprintf(stderr, "Error opening test.nrg: %s\n", strerror(errno));
+    fprintf(stderr, "Error opening %s: %s\n", input_str, strerror(errno));
     exit(EXIT_FAILURE);
   }
 
@@ -341,11 +368,11 @@ int main(int argc, char **argv) {
 
   if (fread32u(input_image) == NER5) {
     first_chunk_offset = fread64u(input_image);
-    image_ver = version2;
+    image_ver = NRG_VER_55;
   }
   else if (fread32u(input_image) == NERO) {
     first_chunk_offset = (uint64_t) fread32u(input_image);
-    image_ver = version1;
+    image_ver = NRG_VER_5;
   }
   else {
     fprintf(stderr, "This does not appear to be a Nero image. Aborting.\n");
