@@ -44,3 +44,55 @@
  * Process the next chunk of data starting from the file's current position.
  */
 void process_next_chunk(FILE*);
+
+
+
+/*
+ * DATA STRUCTURES
+ */
+
+/**
+ * Nero image track struct
+ *
+ * Manages all data relevant to a track in the nero image.
+ * Keeps a pointer to the next track making this a linked list.
+ *
+ * @author Joe Balough
+ */
+struct nrg_track {
+  // Pointer to the next track
+  struct nrg_track *next;
+};
+
+/**
+ * Nero image session struct
+ *
+ * Manages all data relevant to a session in the nero image.
+ * Keeps a pointer to the next session making this a linked list.
+ *
+ * @author Joe Balough
+ */
+struct nrg_session {
+  // Pointer to the next session
+  struct nrg_session *next;
+
+  // Pointer to the front of the list of tracks in this session and the number of them
+  struct nrg_track *tracks;
+  int number_tracks;
+};
+
+/**
+ * Nero image track struct
+ *
+ * Manages all data relevant to the nero image.
+ *
+ * @author Joe Balough
+ */
+struct nrg_image {
+  // Version of this image file. Should be NRG_VER_5 or NRG_VER_55
+  int nrg_version;
+
+  // Pointer to the list of sessions and number of sessions
+  struct nrg_session *sessions;
+  int number_sessions;
+};
