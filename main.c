@@ -109,11 +109,12 @@ int main(int argc, char **argv) {
         break;
     }
   }
+  ver_printf(3, "Done parsing arguments. optind is %d and argc is %d\n", optind, argc);
   
   // Now that all the getopt options have been parsed, that only leaves the input file and output directory.
   // Those two values should be in argv[optind] and argv[optind + 1]
   // Make sure they were actually provided before accessing them
-  if (argc == optind) {
+  if (optind == argc) {
     fprintf(stderr, "Error: No input file provided\n\n");
     usage(argv[0]);
   }
@@ -125,6 +126,13 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error opening %s: %s\n", input_str, strerror(errno));
     exit(EXIT_FAILURE);
   }
+  
+  // Figure out output directory
+  char *output_dir = getenv("PWD");
+  if (optind + 2 == argc)
+    output_dir = argv[optind + 1];
+  if (!info_only)
+    ver_printf(2, "Outputing data to %s\n", output_dir);
   
   ver_printf(2, "Allocating memory and getting image version\n");
   nrg_image *image = malloc(sizeof(nrg_image));
