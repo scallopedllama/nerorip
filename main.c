@@ -146,8 +146,7 @@ int main(int argc, char **argv) {
 
   // Seek to the location of that first chunk
   fseek(image_file, image->first_chunk_offset, SEEK_SET);
-  while (1)
-    process_next_chunk(image_file);
+  process_next_chunk(image_file);
 
   // Cloes file and free ram
   fclose(image_file);
