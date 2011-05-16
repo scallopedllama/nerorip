@@ -47,7 +47,7 @@ int get_nrg_version(FILE *image_file, nrg_image *image) {
  * Process the next chunk of data starting from the file's current position.
  */
 void process_next_chunk(FILE *input_image) {
-  // Chunk data came from the source for libdiscmage at http://www.koders.com/c/fidCFCF40C7DBB1F855208886B92C3C77ED6DBE45F3.aspx
+  // Chunk data came from the source for libdiscmage available at http://sourceforge.net/projects/discmage/
   // The chunk ID and chunk size are always 32 bit integers
   const long int start_offset = ftell(input_image);
   const uint32_t chunk_id = fread32u(input_image);
