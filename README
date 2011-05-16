@@ -1,11 +1,13 @@
 neorip version 0.2
 Report all bugs at https://github.com/scallopedllama/nerorip
 
-Nero Image Ripper takes a nero image file (.nrt extension) as input
+nerorip takes a nero image file (.nrt extension) as input
 and attempts to extract the track data as either ISO or audio data.
 
-Version 0.2 essentially only prints image information after parsing the nero image chunks.
-The usage below (and what is printed without input) describes how it will work in the future.
+Version 0.2 essentially only prints image information after parsing the nero image chunks
+into an internal data structure.
+The usage below is all implemented but the output description below explains how it will
+work in the future.
 
 
 Usage: ./nerorip [OPTIONS]... [INPUT FILE] [OUTPUT DIRECTORY]
