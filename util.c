@@ -42,7 +42,7 @@ void dec_verbosity() {
 // printf wrapper to only print if verbosity requirment is met
 int ver_printf(int v, char* fmt, ...) {
   // Make sure the verbosity level is ok
-  if (v < verbosity)
+  if (v > verbosity)
     return 0;
 
   // Pass the rest off to printf
