@@ -18,6 +18,31 @@
 
 #include "nrg.h"
 
+// detects nrg file version and saves to data structure
+int get_nrg_version(FILE *image_file, nrg_image *image) {
+  // make sure image has been allocated
+  if (!image) return NON_ALLOC;
+  
+  // Seek to 12 bytes from the end and try to read the footer.
+  fseek(image_file, -12, SEEK_END);
+
+  // If the value there is NER5, it's version 5.5
+  if (fread32u(image_file) == NER5) {
+    image->first_chunk_offset = fread64u(image_file);
+    image->nrg_version = NRG_VER_55;
+  }
+  // Otherwise, try to read the next chunk, if it's NERO, then its version 5
+  else if (fread32u(image_file) == NERO) {
+    image->first_chunk_offset = (uint64_t) fread32u(image_file);
+    image->nrg_version = NRG_VER_5;
+  }
+  // If it wasn't either of the above, it must not be a nero image.
+  else 
+    image->nrg_version = NOT_NRG;
+  
+  return image->nrg_version;
+}
+
 /**
  * Process the next chunk of data starting from the file's current position.
  */
@@ -269,7 +294,7 @@ void process_next_chunk(FILE *input_image) {
     exit(EXIT_SUCCESS);
   }
   else {
-    fprintf(stderr, "Unrecognized Chunk ID: 0x%X. Aborting.\n", start_offset, chunk_id);
+    fprintf(stderr, "Unrecognized Chunk ID at ox%X: 0x%X. Aborting.\n", start_offset, chunk_id);
     exit(EXIT_FAILURE);
   }
 }

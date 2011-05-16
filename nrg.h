@@ -15,6 +15,8 @@
  * along with nerorip.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#ifndef NRG_H
+#define NRG_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,13 +41,8 @@
 
 #define NRG_VER_5 1
 #define NRG_VER_55 2
-
-/**
- * Process the next chunk of data starting from the file's current position.
- */
-void process_next_chunk(FILE*);
-
-
+#define NOT_NRG -1
+#define NON_ALLOC -2
 
 /*
  * DATA STRUCTURES
@@ -59,10 +56,10 @@ void process_next_chunk(FILE*);
  *
  * @author Joe Balough
  */
-struct nrg_track {
+typedef struct {
   // Pointer to the next track
   struct nrg_track *next;
-};
+} nrg_track;
 
 /**
  * Nero image session struct
@@ -72,14 +69,14 @@ struct nrg_track {
  *
  * @author Joe Balough
  */
-struct nrg_session {
+typedef struct {
   // Pointer to the next session
   struct nrg_session *next;
 
   // Pointer to the front of the list of tracks in this session and the number of them
-  struct nrg_track *tracks;
+  nrg_track *tracks;
   int number_tracks;
-};
+} nrg_session;
 
 /**
  * Nero image track struct
@@ -88,11 +85,41 @@ struct nrg_session {
  *
  * @author Joe Balough
  */
-struct nrg_image {
+typedef struct {
   // Version of this image file. Should be NRG_VER_5 or NRG_VER_55
   int nrg_version;
+  // Where the first bit of chunk data lies
+  uint64_t first_chunk_offset;
 
   // Pointer to the list of sessions and number of sessions
-  struct nrg_session *sessions;
+  nrg_session *sessions;
   int number_sessions;
-};
+} nrg_image;
+
+
+
+/*
+ * FUNCTIONS
+ */
+
+/**
+ * Process the next chunk of data starting from the file's current position.
+ */
+void process_next_chunk(FILE*);
+
+/**
+ * Detects the version of the NRG file and stores that value in the
+ * passed nrg_image datastructure
+ * 
+ * @param FILE*
+ *   The image file to read. Should already have been opened.
+ * @param nrg_image*
+ *   The nrg_image datastructure to begin filling out. Should already be allocated.
+ * @return int
+ *   The NRG image file's version.
+ *   Will be NOT_NRG if it wasn't a Nero image and NON_ALLOC if image is a null pointer.
+ * @author Joe Balough
+ */
+int get_nrg_version(FILE *image_file, nrg_image *image);
+
+#endif

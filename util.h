@@ -15,6 +15,8 @@
  * along with nerorip.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#ifndef UTIL_H
+#define UTIL_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,3 +66,5 @@ uint8_t fread8u(FILE*);
 uint16_t fread16u(FILE*);
 uint32_t fread32u(FILE*);
 uint64_t fread64u(FILE*);
+
+#endif

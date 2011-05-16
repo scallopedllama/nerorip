@@ -21,8 +21,8 @@
 #include <errno.h>
 #include <string.h> // strerror()
 #include <stdint.h> // uintXX_t types
-#include "nrg.h"
 #include "util.h"
+#include "nrg.h"
 
 #define VERSION "0.2"
 
@@ -64,38 +64,28 @@ int main(int argc, char **argv) {
 
   // Open file
   char *input_str = argv[1];
-  FILE *input_image = fopen(input_str, "rb");
-  if (input_image == NULL) {
+  FILE *image_file = fopen(input_str, "rb");
+  if (image_file == NULL) {
     fprintf(stderr, "Error opening %s: %s\n", input_str, strerror(errno));
     exit(EXIT_FAILURE);
   }
-
-  int image_ver;
-  // The header is actually stored in the last 8 or 12 bytes of the file, depending on the version.
-  // Seek to 12 bytes from the end and see if it's version 2. If so, get the header.
-  uint64_t first_chunk_offset;
-  fseek(input_image, -12, SEEK_END);
-
-  if (fread32u(input_image) == NER5) {
-    first_chunk_offset = fread64u(input_image);
-    image_ver = NRG_VER_55;
-  }
-  else if (fread32u(input_image) == NERO) {
-    first_chunk_offset = (uint64_t) fread32u(input_image);
-    image_ver = NRG_VER_5;
-  }
-  else {
-    fprintf(stderr, "This does not appear to be a Nero image. Aborting.\n");
+  
+  ver_printf(2, "Allocating memory and getting image version\n");
+  nrg_image *image = malloc(sizeof(nrg_image));
+  if (get_nrg_version(image_file, image) == NOT_NRG) {
+    fprintf(stderr, "File not a Nero image. Aborting.\n");
     exit(EXIT_FAILURE);
   }
 
-  printf("Image is a version %d Nero image with first chunk offset of 0x%X\n", image_ver, first_chunk_offset);
+  printf("Image is a version %d Nero image with first chunk offset of 0x%X\n", image->nrg_version, image->first_chunk_offset);
 
   // Seek to the location of that first chunk
-  fseek(input_image, first_chunk_offset, SEEK_SET);
+  fseek(image_file, image->first_chunk_offset, SEEK_SET);
   while (1)
-    process_next_chunk(input_image);
+    process_next_chunk(image_file);
 
-  fclose(input_image);
+  // Cloes file and free ram
+  fclose(image_file);
+  free(image);
 }
 
