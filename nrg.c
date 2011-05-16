@@ -294,7 +294,7 @@ void process_next_chunk(FILE *input_image) {
     exit(EXIT_SUCCESS);
   }
   else {
-    fver_printf(3, stderr, "Unrecognized Chunk ID at ox%X: 0x%X. Aborting.\n", start_offset, chunk_id);
+    fprintf(stderr, "Unrecognized Chunk ID at ox%X: 0x%X. Aborting.\n", start_offset, chunk_id);
     exit(EXIT_FAILURE);
   }
 }
