@@ -109,7 +109,8 @@ int main(int argc, char **argv) {
         break;
     }
   }
-  ver_printf(3, "Done parsing arguments. optind is %d and argc is %d\n", optind, argc);
+  // Print simple welcome message
+  ver_printf(1, "neorip v%s\n", VERSION);
   
   // Now that all the getopt options have been parsed, that only leaves the input file and output directory.
   // Those two values should be in argv[optind] and argv[optind + 1]
@@ -119,8 +120,8 @@ int main(int argc, char **argv) {
     usage(argv[0]);
   }
   
-  // Open file
   char *input_str = argv[optind];
+  ver_printf(2, "Opening file %s\n", input_str);
   FILE *image_file = fopen(input_str, "rb");
   if (image_file == NULL) {
     fprintf(stderr, "Error opening %s: %s\n", input_str, strerror(errno));
