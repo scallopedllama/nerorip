@@ -18,13 +18,27 @@
 
 #include "util.h"
 
-/**
- * File reading convenience functions
- *
- * These functions read an unsigned integer of the indicated size from the
- * passed file and handles read errors and the like.
- * Before returning, convert the number from little endian to big endian.
- */
+// Global verbosity variable.
+// 0 = print nothing, 1 = print normally, 2 = print everything.
+extern int verbosity = 1;
+
+
+// printf wrapper to only print if verbosity requirment is met
+int ver_printf(int v, char* fmt, ...) {
+  // Make sure the verbosity level is ok
+  if (v < verbosity)
+    return 0;
+
+  // Pass the rest off to printf
+  va_list ap;
+  va_start(ap, fmt);
+  int r = vprintf(fmt, ap);
+  va_end(ap);
+  return r;
+}
+
+
+// File reading convenience functions
 uint8_t fread8u(FILE* input) {
   uint8_t r;
   if (fread(&r, sizeof(uint8_t), 1, input) != 1) {
@@ -60,3 +74,4 @@ uint64_t fread64u(FILE* input) {
   }
   return bswap_64(r);
 }
+
