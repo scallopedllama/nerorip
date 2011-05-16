@@ -21,6 +21,8 @@
 #include <errno.h>
 #include <string.h> // strerror()
 #include <stdint.h> // uintXX_t types
+#include <getopt.h> // getopt_long
+#include <ctype.h> // getopt_long
 #include "util.h"
 #include "nrg.h"
 
@@ -57,6 +59,76 @@ void usage(char *argv0) {
 
 
 int main(int argc, char **argv) {
+  int c;
+  while (1)
+  {
+    static struct option long_options[] = {
+      /* These options don't set a flag.  We distinguish them by their indices. */
+      {"info",     no_argument, 0, 'i'},
+      {"verbose",  no_argument, 0, 'v'},
+      {"quiet",    no_argument, 0, 'q'},
+      {"help",     no_argument, 0, 'h'},
+      {"version",  no_argument, 0, 'V'},
+      {0, 0, 0, 0}
+    };
+    
+    /* getopt_long stores the option index here. */
+    int option_index = 0;
+
+    c = getopt_long (argc, argv, "ivqhV", long_options, &option_index);
+    
+    /* Detect the end of the options. */
+    if (c == -1)
+      break;
+
+    switch (c)
+    {
+      case 0:
+        /* If this option set a flag, do nothing else now. */
+        if (long_options[option_index].flag != 0)
+          break;
+        printf ("option %s", long_options[option_index].name);
+        if (optarg)
+          printf (" with arg %s", optarg);
+        printf ("\n");
+        break;
+
+      case 'i':
+        puts ("option -i\n");
+        break;
+
+      case 'v':
+        puts ("option -v\n");
+        break;
+
+      case 'q':
+        printf ("option -q\n");
+        break;
+
+      case 'h':
+        printf ("option -h\n");
+        break;
+
+      case 'V':
+        printf ("option -ver\n");
+        break;
+
+      case '?':
+        printf ("?\n");
+        /* getopt_long already printed an error message. */
+        break;
+
+      default:
+        abort ();
+    }
+  }
+  
+  int index;
+  for (index = optind; index < argc; index++)
+         printf ("Non-option argument %s\n", argv[index]);
+  
+  return 0;
+
   // TODO: Actually parse arguments.
   if (argc <= 1) {
     usage(argv[0]);
