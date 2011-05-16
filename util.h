@@ -24,14 +24,19 @@
 #include <byteswap.h> // for bswap_XX functions
 #include <stdarg.h> // for printf wrapper
 
+
 /**
- * Global variable verbosity
- *
- * Indicates what level of verbosity the user wants to see.
- * Defaults to 1, can be dropped to 0 (print nothing) with the --quiet, -q option.
- * --verbose, -v increse it one value.
+ * Increments verbosity one tick
+ * @author Joe Balough
  */
-extern int verbosity;
+void inc_verbosity();
+
+/**
+ * Decrements verbosity one tick
+ * @author Joe Balough
+ */
+void dec_verbosity();
+
 
 /**
  * printf() wrapper
@@ -46,6 +51,7 @@ extern int verbosity;
  * @author Joe Balough
  */
 int ver_printf(int verbosity, char *format, ...);
+
 
 /**
  * File reading convenience functions

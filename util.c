@@ -18,9 +18,25 @@
 
 #include "util.h"
 
-// Global verbosity variable.
-// 0 = print nothing, 1 = print normally, 2 = print everything.
-extern int verbosity = 1;
+
+/**
+ * Global variable verbosity
+ *
+ * Indicates what level of verbosity the user wants to see.
+ * Defaults to 1, can be dropped to 0 (print nothing) with the --quiet, -q option.
+ * --verbose, -v increse it one value.
+ */
+int verbosity = 1;
+
+// Increments verbosity
+void inc_verbosity() {
+  verbosity++;
+}
+
+// Decrements verbosity
+void dec_verbosity() {
+  verbosity--;
+}
 
 
 // printf wrapper to only print if verbosity requirment is met
