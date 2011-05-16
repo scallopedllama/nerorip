@@ -28,6 +28,10 @@
 
 #define VERSION "0.2"
 
+/**
+ * Whether only information about the file should be printed
+ */
+static int info_only = 0;
 
 void usage(char *argv0) {
   fprintf(stderr, "Usage: %s [OPTIONS]... [INPUT FILE] [OUTPUT DIRECTORY]\n", argv0);
@@ -57,85 +61,65 @@ void usage(char *argv0) {
   exit(EXIT_FAILURE);
 }
 
+void version(char *argv0) {
+  printf("%s v%s\n", argv0, VERSION);
+  printf("Licensed under GNU LGPL version 3 or later <http://gnu.org/licenses/gpl.html>\n");
+  printf("This is free software: you are free to change and redistribute it.\n");
+  printf("There is NO WARRANTY, to the extent permitted by law.\n");
+  exit(EXIT_SUCCESS);
+}
 
 int main(int argc, char **argv) {
+  // Configure the long getopt options
+  static struct option long_options[] = {
+    {"info",     no_argument, 0, 'i'},
+    {"verbose",  no_argument, 0, 'v'},
+    {"quiet",    no_argument, 0, 'q'},
+    {"help",     no_argument, 0, 'h'},
+    {"version",  no_argument, 0, 'V'},
+    {0, 0, 0, 0}
+  };
+  
+  // Loop through all the passed options
   int c;
-  while (1)
-  {
-    static struct option long_options[] = {
-      /* These options don't set a flag.  We distinguish them by their indices. */
-      {"info",     no_argument, 0, 'i'},
-      {"verbose",  no_argument, 0, 'v'},
-      {"quiet",    no_argument, 0, 'q'},
-      {"help",     no_argument, 0, 'h'},
-      {"version",  no_argument, 0, 'V'},
-      {0, 0, 0, 0}
-    };
-    
-    /* getopt_long stores the option index here. */
-    int option_index = 0;
-
-    c = getopt_long (argc, argv, "ivqhV", long_options, &option_index);
-    
-    /* Detect the end of the options. */
-    if (c == -1)
-      break;
-
-    switch (c)
-    {
-      case 0:
-        /* If this option set a flag, do nothing else now. */
-        if (long_options[option_index].flag != 0)
-          break;
-        printf ("option %s", long_options[option_index].name);
-        if (optarg)
-          printf (" with arg %s", optarg);
-        printf ("\n");
-        break;
-
-      case 'i':
-        puts ("option -i\n");
-        break;
-
+  while ((c = getopt_long (argc, argv, "ivqhV", long_options, NULL)) != -1) {
+    switch (c) {
+      // Verbose
       case 'v':
-        puts ("option -v\n");
+        inc_verbosity();
         break;
-
+      // Quiet
       case 'q':
-        printf ("option -q\n");
+        dec_verbosity();
         break;
-
+      // Info
+      case 'i':
+        ver_printf(1, "Will only print information.\n");
+        info_only = 1;
+        break;
+      // Help
       case 'h':
-        printf ("option -h\n");
+        usage(argv[0]);
         break;
-
+      // Version
       case 'V':
-        printf ("option -ver\n");
+        version(argv[0]);
         break;
-
-      case '?':
-        printf ("?\n");
-        /* getopt_long already printed an error message. */
-        break;
-
       default:
-        abort ();
+        break;
     }
   }
   
-  int index;
-  for (index = optind; index < argc; index++)
-         printf ("Non-option argument %s\n", argv[index]);
-  
-  return 0;
-
-  // TODO: Actually parse arguments.
-  if (argc <= 1) {
+  // Now that all the getopt options have been parsed, that only leaves the input file and output directory.
+  // Those two values should be in argv[optind] and argv[optind + 1]
+  // Make sure they were actually provided before accessing them
+  if (argc == optind) {
+    fprintf(stderr, "Error: No input file provided\n\n");
     usage(argv[0]);
   }
-
+  
   // Open file
-  char *input_str = argv[1];
+  char *input_str = argv[optind];
   FILE *image_file = fopen(input_str, "rb");
   if (image_file == NULL) {
     fprintf(stderr, "Error opening %s: %s\n", input_str, strerror(errno));
