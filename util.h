@@ -67,9 +67,15 @@ int ver_printf(int verbosity, char *format, ...);
 /**
  * File reading convenience functions
  *
- * These functions read an unsigned integer of the indicated size from the
- * passed file and handles read errors and the like.
+ * These functions read an unsigned integer of the indicated size from the passed file.
  * Before returning, convert the number from little endian to big endian.
+ * If the read failed, it will return 0.
+ *
+ * @param FILE*
+ *   A file pointer to the file from which the value should be read.
+ * @return mixed
+ *   Returns the byteswapped value read
+ * @author Joe Balough
  */
 uint8_t fread8u(FILE*);
 uint16_t fread16u(FILE*);

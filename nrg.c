@@ -366,6 +366,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
   }
 
   // If the eof was reached, there was a problem so tell the user.
+  // I know that with the way the fread wrappers work, this would not likely be shown... but oh well.
   if (feof(image_file)) {
     ver_printf(1,   "WARNING: End of file reached. This should not have happened.\n");
     if (get_verbosity() < 3)
