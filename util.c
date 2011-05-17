@@ -38,6 +38,11 @@ void dec_verbosity() {
   verbosity--;
 }
 
+// Returns the verbosity
+int get_verbosity() {
+  return verbosity;
+}
+
 
 // printf wrapper to only print if verbosity requirment is met
 int ver_printf(int v, char* fmt, ...) {

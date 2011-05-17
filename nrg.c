@@ -99,19 +99,25 @@ int get_nrg_version(FILE *image_file, nrg_image *image) {
   return image->nrg_version;
 }
 
-/**
- * Process the next chunk of data starting from the file's current position.
- */
-void process_next_chunk(FILE *input_image) {
+// Parses the chunk data in the image file to fill in nrg_image data structure
+int nrg_parse(FILE *image_file, nrg_image *image) {
+  // Make sure properly allocated
+  if (!image_file || !image)
+    return NON_ALLOC;
+
   ver_printf(3, "Processing Chunk data:\n");
 
-  while (1) {
+  // Keep track of what should be returned
+  int r = 0;
+
+  // Don't let this loop forever: break if we reach the end of the file
+  while (!feof(image_file)) {
 
     // Chunk data came from the source for libdiscmage available at http://sourceforge.net/projects/discmage/
     // The chunk ID and chunk size are always 32 bit integers
-    const long int start_offset = ftell(input_image);
-    const uint32_t chunk_id = fread32u(input_image);
-    const uint32_t chunk_size = fread32u(input_image);
+    const long int start_offset = ftell(image_file);
+    const uint32_t chunk_id = fread32u(image_file);
+    const uint32_t chunk_size = fread32u(image_file);
 
     if (chunk_id == CUES || chunk_id == CUEX) {
       /**
@@ -150,29 +156,29 @@ void process_next_chunk(FILE *input_image) {
       static int session_number = 1;
       static int track_number = 1;
 
-      uint8_t session_mode = fread8u(input_image);
+      uint8_t session_mode = fread8u(image_file);
 
       // Skip junk
-      assert(fread8u(input_image) == 0x00); // Track
-      assert(fread8u(input_image) == 0x00); // 0x00
-      assert(fread8u(input_image) == 0x00); // Index
+      assert(fread8u(image_file) == 0x00); // Track
+      assert(fread8u(image_file) == 0x00); // 0x00
+      assert(fread8u(image_file) == 0x00); // Index
 
-      uint32_t session_start_LBA = fread32u(input_image);
+      uint32_t session_start_LBA = fread32u(image_file);
       ver_printf(3, "  %s at 0x%X:\n    Size - %d B, Session %d has %d track(s) using mode %s and starting at 0x%X.\n", (chunk_id == CUES ? "CUES" : "CUEX"), start_offset, chunk_size, session_number, number_tracks, (session_mode == 0x41 ? "Mode2" : (session_mode == 0x01 ? "Audio" : "Unknown")), session_start_LBA);
 
       int i = 1;
       for (i = 1; i <= number_tracks; i++, track_number++) {
-        uint8_t pretrack_mode  = fread8u(input_image);
-        assert(fread8u(input_image) == track_number);    // Track number
-        assert(fread8u(input_image) == 0x00); // Track index
-        assert(fread8u(input_image) == 0x00); // 0x00
-        uint32_t pretrack_LBA = fread32u(input_image);
+        uint8_t pretrack_mode  = fread8u(image_file);
+        assert(fread8u(image_file) == track_number);    // Track number
+        assert(fread8u(image_file) == 0x00); // Track index
+        assert(fread8u(image_file) == 0x00); // 0x00
+        uint32_t pretrack_LBA = fread32u(image_file);
 
-        uint8_t track_mode = fread8u(input_image);
-        assert(fread8u(input_image) == track_number);    // Track number
-        assert(fread8u(input_image) == 0x01); // Track index
-        assert(fread8u(input_image) == 0x00); // 0x00
-        uint32_t track_LBA = fread32u(input_image);
+        uint8_t track_mode = fread8u(image_file);
+        assert(fread8u(image_file) == track_number);    // Track number
+        assert(fread8u(image_file) == 0x01); // Track index
+        assert(fread8u(image_file) == 0x00); // 0x00
+        uint32_t track_LBA = fread32u(image_file);
 
         ver_printf(3, "      Track %d: Index 0 uses mode %s and starts at LBA 0x%X, ", i, (pretrack_mode == 0x41 ? "Mode2" : (pretrack_mode == 0x01 ? "Audio" : "Unknown")), pretrack_LBA);
         ver_printf(3, "Index 1 uses mode %s and starts at LBA 0x%X.\n", (track_mode == 0x41 ? "Mode2" : (track_mode == 0x01 ? "Audio" : "Unknown")), track_LBA);
@@ -180,13 +186,13 @@ void process_next_chunk(FILE *input_image) {
 
       // Skip junk
       // TODO: track the version number and re-enable this assertion, but only for NRG_VER_55
-      //       assert(fread8u(input_image) == session_mode); // Mode
-      fread8u(input_image);
-      assert(fread8u(input_image) == 0xaa);         // 0xAA
-      assert(fread8u(input_image) == 0x01);         // 0x01
-      assert(fread8u(input_image) == 0x00);         // 0x00
+      //       assert(fread8u(image_file) == session_mode); // Mode
+      fread8u(image_file);
+      assert(fread8u(image_file) == 0xaa);         // 0xAA
+      assert(fread8u(image_file) == 0x01);         // 0x01
+      assert(fread8u(image_file) == 0x00);         // 0x00
 
-      uint32_t session_end_LBA = fread32u(input_image);
+      uint32_t session_end_LBA = fread32u(image_file);
       ver_printf(3, "    Session ends at LBA 0x%X\n", session_end_LBA);
 
       session_number++;
@@ -210,15 +216,15 @@ void process_next_chunk(FILE *input_image) {
       * ... Repeat for each track in this session
       */
       // # tracks
-      int number_tracks = (fread32u(input_image) - 22) / 30;
+      int number_tracks = (fread32u(image_file) - 22) / 30;
 
       // Skip UPC
-      fseek(input_image, 14, SEEK_CUR);
+      fseek(image_file, 14, SEEK_CUR);
 
-      uint8_t toc_type    = fread8u(input_image);
-      fread8u(input_image); // close cd
-      uint8_t first_track = fread8u(input_image);
-      uint8_t last_track  = fread8u(input_image);
+      uint8_t toc_type    = fread8u(image_file);
+      fread8u(image_file); // close cd
+      uint8_t first_track = fread8u(image_file);
+      uint8_t last_track  = fread8u(image_file);
 
       ver_printf(3, "  DAOI at 0x%X:\n    Size - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X\n", start_offset, chunk_size, toc_type, first_track, last_track);
       ver_printf(3, "    Session has %d tracks:\n", number_tracks);
@@ -228,13 +234,13 @@ void process_next_chunk(FILE *input_image) {
       for (i = 1; i <= number_tracks; i++)
       {
         // Skip ISRC Code
-        fseek(input_image, 10, SEEK_CUR);
+        fseek(image_file, 10, SEEK_CUR);
 
-        uint32_t sector_size = fread32u(input_image);
-        uint32_t mode        = fread32u(input_image);
-        uint32_t index0      = fread32u(input_image);
-        uint32_t index1      = fread32u(input_image);
-        uint32_t next_offset = fread32u(input_image);
+        uint32_t sector_size = fread32u(image_file);
+        uint32_t mode        = fread32u(image_file);
+        uint32_t index0      = fread32u(image_file);
+        uint32_t index1      = fread32u(image_file);
+        uint32_t next_offset = fread32u(image_file);
         ver_printf(3, "      Track %d: Sector Size - %d B, Mode - %s, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, sector_size, (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other")), index0, index1, next_offset);
       }
     }
@@ -259,15 +265,15 @@ void process_next_chunk(FILE *input_image) {
       *  It looks like either Index0 or Index1 is the file location where the actual image data lies. DC images' audio data is just straight 00's.
       */
       // # tracks
-      int number_tracks = (fread32u(input_image) - 22) / 30;
+      int number_tracks = (fread32u(image_file) - 22) / 30;
 
       // Skip UPC
-      fseek(input_image, 14, SEEK_CUR);
+      fseek(image_file, 14, SEEK_CUR);
 
-      uint8_t toc_type    = fread8u(input_image);
-      fread8u(input_image); // close cd
-      uint8_t first_track = fread8u(input_image);
-      uint8_t last_track  = fread8u(input_image);
+      uint8_t toc_type    = fread8u(image_file);
+      fread8u(image_file); // close cd
+      uint8_t first_track = fread8u(image_file);
+      uint8_t last_track  = fread8u(image_file);
 
       ver_printf(3, "  DAOX at 0x%X:\n    Size - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X\n", start_offset, chunk_size, toc_type, first_track, last_track);
       ver_printf(3, "    Session has %d track(s):\n", number_tracks);
@@ -276,13 +282,13 @@ void process_next_chunk(FILE *input_image) {
       for (i = 1; i <= number_tracks; i++)
       {
         // Skip ISRC Code
-        fseek(input_image, 10, SEEK_CUR);
+        fseek(image_file, 10, SEEK_CUR);
 
-        uint32_t sector_size = fread32u(input_image);
-        uint32_t mode        = fread32u(input_image);
-        uint64_t index0      = fread64u(input_image);
-        uint64_t index1      = fread64u(input_image);
-        uint64_t next_offset = fread64u(input_image);
+        uint32_t sector_size = fread32u(image_file);
+        uint32_t mode        = fread32u(image_file);
+        uint64_t index0      = fread64u(image_file);
+        uint64_t index1      = fread64u(image_file);
+        uint64_t next_offset = fread64u(image_file);
         ver_printf(3, "      Track %d: Sector Size - %d B, Mode - %s, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, sector_size, (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other")), index0, index1, next_offset);
       }
     }
@@ -292,7 +298,7 @@ void process_next_chunk(FILE *input_image) {
       *   18 B           CD-text pack
       */
       ver_printf(3, "  CDTX at 0x%X: Size - %dB\n", start_offset, chunk_size);
-      fseek(input_image, chunk_size, SEEK_CUR);
+      fseek(image_file, chunk_size, SEEK_CUR);
     }
     else if (chunk_id == ETNF) {
       /**
@@ -305,11 +311,11 @@ void process_next_chunk(FILE *input_image) {
       *   4 B    00
       * ... Repeat for each track (in session)
       */
-      uint32_t track_offset = fread32u(input_image);
-      uint32_t track_length = fread32u(input_image);
-      uint32_t track_mode   = fread32u(input_image);
-      uint32_t start_lba    = fread32u(input_image);
-      assert(fread32u(input_image) == 0x00);
+      uint32_t track_offset = fread32u(image_file);
+      uint32_t track_length = fread32u(image_file);
+      uint32_t track_mode   = fread32u(image_file);
+      uint32_t start_lba    = fread32u(image_file);
+      assert(fread32u(image_file) == 0x00);
 
       ver_printf(3, "  ENTF at 0x%X:\n    Size - %d B, Track Offset - 0x%X, Track Length - %d B, Mode - %s, Start LBA - 0x%X\n", start_offset, chunk_size, track_offset, track_length, (track_mode == 0x03 ? "Mode2/2336" : (track_mode == 0x06 ? "Mode2/2352" : (track_mode == 0x07 ? "Audio/2352" : "Unknown"))), start_lba);
     }
@@ -323,11 +329,11 @@ void process_next_chunk(FILE *input_image) {
       *   8 B    00
       * ... Repeat for each track (in session)
       */
-      uint64_t track_offset = fread64u(input_image);
-      uint64_t track_length = fread64u(input_image);
-      uint32_t track_mode   = fread32u(input_image);
-      uint32_t start_lba    = fread32u(input_image);
-      assert(fread64u(input_image) == 0x00);
+      uint64_t track_offset = fread64u(image_file);
+      uint64_t track_length = fread64u(image_file);
+      uint32_t track_mode   = fread32u(image_file);
+      uint32_t start_lba    = fread32u(image_file);
+      assert(fread64u(image_file) == 0x00);
 
       ver_printf(3, "  ENT2 at 0x%X:\n    Size - %d B, Track Offset - 0x%X, Track Length - %d B, Mode - %s, Start LBA - 0x%X\n", start_offset, chunk_size, track_offset, track_length, (track_mode == 0x03 ? "Mode2/2336" : (track_mode == 0x06 ? "Mode2/2352" : (track_mode == 0x07 ? "Audio/2352" : "Unknown"))), start_lba);
     }
@@ -336,7 +342,7 @@ void process_next_chunk(FILE *input_image) {
       * SINF (Session Information) Format:
       *   4 B    Number tracks in session
       */
-      uint32_t number_tracks = fread32u(input_image);
+      uint32_t number_tracks = fread32u(image_file);
 
       ver_printf(3, "  SINF at 0x%X: Size - %dB, Number of Tracks: %d\n", start_offset, chunk_size, number_tracks);
     }
@@ -345,7 +351,7 @@ void process_next_chunk(FILE *input_image) {
       * MTYP (Media Type?) Format:
       *   4 B         unknown
       */
-      uint32_t mystery_int  = fread32u(input_image);
+      uint32_t mystery_int  = fread32u(image_file);
 
       ver_printf(3, "  MTYP at 0x%X:  Size - %dB, ? - 0x%X\n", start_offset, chunk_size, mystery_int);
     }
@@ -354,9 +360,23 @@ void process_next_chunk(FILE *input_image) {
       break;
     }
     else {
-      fprintf(stderr, "  Unrecognized Chunk ID at ox%X: 0x%X. Aborting.\n", start_offset, chunk_id);
-      exit(EXIT_FAILURE);
+      fprintf(stderr, "  Unrecognized Chunk ID at ox%X: 0x%X.\n", start_offset, chunk_id);
+      r = NRG_WARN;
     }
   }
+
+  // If the eof was reached, there was a problem so tell the user.
+  if (feof(image_file)) {
+    ver_printf(1,   "WARNING: End of file reached. This should not have happened.\n");
+    if (get_verbosity() < 3)
+      ver_printf(1, "         Try running again with -vv to see chunk processing output to see what went wrong\n");
+    else
+      ver_printf(3, "         See output above to see what went wrong\n");
+    ver_printf(1,   "         This was likely a bug in nerorip so please report to %s\n", WEBSITE);
+
+    r = NRG_WARN;
+  }
+
   ver_printf(3, "Done processing chunk data.\n");
+  return r;
 }

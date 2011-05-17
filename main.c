@@ -26,8 +26,6 @@
 #include "util.h"
 #include "nrg.h"
 
-#define VERSION "0.2"
-
 /**
  * Whether only information about the file should be printed
  */
@@ -57,7 +55,7 @@ void usage(char *argv0) {
   printf("  audio.s01t01.wav, data.s01t02.iso, data.s02t03.iso, session01.cue, session02.cue\n");
   printf("Note that the track number does not reset between sessions.\n\n");
 
-  printf("Report all bugs at https://github.com/scallopedllama/nerorip\nVersion %s\n", VERSION);
+  printf("Report all bugs at %s\nVersion %s\n", WEBSITE, VERSION);
   exit(EXIT_SUCCESS);
 }
 
@@ -147,7 +145,8 @@ int main(int argc, char **argv) {
 
   // Seek to the location of that first chunk
   fseek(image_file, image->first_chunk_offset, SEEK_SET);
-  process_next_chunk(image_file);
+  if (nrg_parse(image_file, image) == NRG_WARN)
+    printf("got some warnings\n");
 
   // Cloes file and free ram
   fclose(image_file);

@@ -26,6 +26,9 @@
 #include <byteswap.h> // for bswap_XX functions
 #include <stdarg.h> // for printf wrapper
 
+#define WEBSITE "https://github.com/scallopedllama/nerorip"
+#define VERSION "0.2"
+
 
 /**
  * Increments verbosity one tick
@@ -38,6 +41,12 @@ void inc_verbosity();
  * @author Joe Balough
  */
 void dec_verbosity();
+
+/**
+ * Returns the current verbosity
+ * @author Joe Balough
+ */
+inline int get_verbosity();
 
 
 /**

@@ -25,6 +25,7 @@
 #include <stdint.h> // uintXX_t types
 #include <byteswap.h> // for bswap_XX functions
 #include <assert.h>
+#include "util.h"
 
 #define NER5 0x4e455235
 #define NERO 0x4e45524f
@@ -39,11 +40,17 @@
 #define MTYP 0x4d545950
 #define END  0x454e4421
 
-#define NRG_VER_5 1
+// Defines nero image versions
 #define NRG_VER_55 2
-#define NOT_NRG -1
-#define NON_ALLOC -2
+#define NRG_VER_5 1
+// Indicates that the nrg_image struct hasn't been processed yet
 #define UNPROCESSED 0
+// Indicates that the image file does not appear to be a nero image
+#define NOT_NRG -1
+// Indicates that the passed structure was not properly allocated first
+#define NON_ALLOC -2
+// Indicates that something unexpected happened while parsing the file.
+#define NRG_WARN -3
 
 /*
  * DATA STRUCTURES
@@ -125,9 +132,21 @@ void free_nrg_image(nrg_image *image);
 
 
 /**
- * Process the next chunk of data starting from the file's current position.
+ * Parse the nero image chunk data from the image_file
+ * and fill in the image data structure.
+ * When this function returns, image will completely describe the image file.
+ *
+ * @param FILE* image_file
+ *   File pointer to already opened nero image file
+ * @param nrg_image* image
+ *   The already allocated nrg_image struct to fill
+ * @return
+ *   0 on success
+ *   NRG_WARN if unrecognized chunks were encountered
+ *   NON_ALLOC if nrg_image or image_file not allocated
+ * @author Joe Balough
  */
-void process_next_chunk(FILE*);
+int nrg_parse(FILE *image_file, nrg_image *image);
 
 
 /**
