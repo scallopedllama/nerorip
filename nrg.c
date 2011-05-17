@@ -419,7 +419,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
       // See if the number of sessions reported by this SINF matches the number of sessions found
       if (relevant_session) {
         if (relevant_session->number_tracks == number_tracks)
-          ver_printf(3, "    Matches number of tracks found for session %d\n", sinf_number);
+          ver_printf(3, "    Matches number of tracks found for session %d\n", sinf_number + 1);
         else {
           ver_printf(3, "    Warning: Doesn't match number of tracks found for session %d\n", sinf_number);
           r = NRG_WARN;
