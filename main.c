@@ -133,22 +133,14 @@ int main(int argc, char **argv) {
   if (!info_only)
     ver_printf(2, "Outputing data to %s\n", output_dir);
 
-  ver_printf(2, "Allocating memory and getting image version\n");
+  ver_printf(3, "Allocating memory\n");
   nrg_image *image = alloc_nrg_image();
 
-  if (get_nrg_version(image_file, image) == NOT_NRG) {
-    fprintf(stderr, "File not a Nero image. Aborting.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  printf("Image is a version %d Nero image with first chunk offset of 0x%X\n", image->nrg_version, image->first_chunk_offset);
-
-  // Seek to the location of that first chunk
-  fseek(image_file, image->first_chunk_offset, SEEK_SET);
-  if (nrg_parse(image_file, image) == NRG_WARN)
-    printf("got some warnings\n");
+  // Parse the image file
+  nrg_parse(image_file, image);
 
   // Cloes file and free ram
+  ver_printf(3, "Cleaning up\n");
   fclose(image_file);
   free_nrg_image(image);
 }

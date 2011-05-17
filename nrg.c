@@ -135,6 +135,7 @@ void add_nrg_session(nrg_image *image, nrg_session *session) {
 }
 
 
+// Adds an nrg_track to an nrg_session
 void add_nrg_track(nrg_session *session, nrg_track *track) {
   if (!track || !session) {
     fprintf(stderr, "add_nrg_track got an unallocated nrg_session or nrg_track.\n");
@@ -154,10 +155,13 @@ void add_nrg_track(nrg_session *session, nrg_track *track) {
 }
 
 
-// detects nrg file version and saves to data structure
-int get_nrg_version(FILE *image_file, nrg_image *image) {
-  // make sure image has been allocated
-  if (!image) return NON_ALLOC;
+// Parses the chunk data in the image file to fill in nrg_image data structure
+int nrg_parse(FILE *image_file, nrg_image *image) {
+  // Make sure properly allocated
+  if (!image_file || !image)
+    return NON_ALLOC;
+
+  ver_printf(3, "Detecting NRG file version:\n");
 
   // Seek to 12 bytes from the end and try to read the footer.
   fseek(image_file, -12, SEEK_END);
@@ -166,24 +170,22 @@ int get_nrg_version(FILE *image_file, nrg_image *image) {
   if (fread32u(image_file) == NER5) {
     image->first_chunk_offset = fread64u(image_file);
     image->nrg_version = NRG_VER_55;
+    ver_printf(3, "  File appears to be a Nero 5.5 image\n");
   }
   // Otherwise, try to read the next chunk, if it's NERO, then its version 5
   else if (fread32u(image_file) == NERO) {
     image->first_chunk_offset = (uint64_t) fread32u(image_file);
     image->nrg_version = NRG_VER_5;
+    ver_printf(3, "  File appears to be a Nero 5 image\n");
   }
   // If it wasn't either of the above, it must not be a nero image.
-  else
+  else {
     image->nrg_version = NOT_NRG;
+    ver_printf(3, "  File does not appear to be a Nero 5.5 image\n");
+  }
 
-  return image->nrg_version;
-}
-
-// Parses the chunk data in the image file to fill in nrg_image data structure
-int nrg_parse(FILE *image_file, nrg_image *image) {
-  // Make sure properly allocated
-  if (!image_file || !image)
-    return NON_ALLOC;
+  ver_printf(3, "Seeking to first chunk offset\n");
+  fseek(image_file, image->first_chunk_offset, SEEK_SET);
 
   ver_printf(3, "Processing Chunk data:\n");
 

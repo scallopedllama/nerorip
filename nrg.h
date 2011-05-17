@@ -195,19 +195,4 @@ void add_nrg_session(nrg_image *image, nrg_session *session);
 int nrg_parse(FILE *image_file, nrg_image *image);
 
 
-/**
- * Detects the version of the NRG file and stores that value in the
- * passed nrg_image datastructure
- *
- * @param FILE*
- *   The image file to read. Should already have been opened.
- * @param nrg_image*
- *   The nrg_image datastructure to begin filling out. Should already be allocated.
- * @return int
- *   The NRG image file's version.
- *   Will be NOT_NRG if it wasn't a Nero image and NON_ALLOC if image is a null pointer.
- * @author Joe Balough
- */
-int get_nrg_version(FILE *image_file, nrg_image *image);
-
 #endif
