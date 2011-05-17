@@ -65,7 +65,7 @@ void free_nrg_image(nrg_image *image) {
     }
 
     // Now that all the tracks have been freed, free this session
-    nrg_session *next_session = s;
+    nrg_session *next_session = s->next;
     free(s);
     s = next_session;
   }
@@ -197,7 +197,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
 
     // Chunk data came from the source for libdiscmage available at http://sourceforge.net/projects/discmage/
     // The chunk ID and chunk size are always 32 bit integers
-    const long int start_offset = ftell(image_file);
+    const long int chunk_offset = ftell(image_file);
     const uint32_t chunk_id = fread32u(image_file);
     const uint32_t chunk_size = fread32u(image_file);
 
@@ -228,54 +228,67 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
       * 4 B    mm AA 01 00   mm = mode (if version 2)
       * 4 B    V1: Last MMSSFF; V2: Last LBA (MMSSFF == index1 + length)
       *
-      * About the LBA: The first LBA is the starting LBA for this session. If it's the first session, it's always 0xffffff6a.
-      *                The middle part repeats once for each session. The first LBA is the pre-start LBA for the track and the
+      * About the LBA: The first LBA is the starting LBA for this session. If it's the first session, it's usually 0xffffff6a.
+      *                The middle part repeats once for each track. The first LBA is the pre-start LBA for the track and the
       *                second is indicates where the track actually begins.
       *                Unless the track is audio with an intro bit (where the player starts at a negative time), the second LBA
       *                in each loop is 0x00000000
       */
-      int number_tracks = chunk_size / 16 - 1;
       static int session_number = 1;
       static int track_number = 1;
 
-      uint8_t session_mode = fread8u(image_file);
+      // CUES / CUEX indicates the start of a new DAO session so create a new session and add it to the image
+      nrg_session *new_session = alloc_nrg_session();
+      add_nrg_session(image, new_session);
+
+      // Set burn mode and session mode and number of tracks
+      new_session->number_tracks = chunk_size / 16 - 1;
+      new_session->burn_mode = DAO;
+      new_session->session_mode = fread8u(image_file);
 
       // Skip junk
       assert(fread8u(image_file) == 0x00); // Track
       assert(fread8u(image_file) == 0x00); // 0x00
       assert(fread8u(image_file) == 0x00); // Index
 
-      uint32_t session_start_LBA = fread32u(image_file);
-      ver_printf(3, "  %s at 0x%X:\n    Size - %d B, Session %d has %d track(s) using mode %s and starting at 0x%X.\n", (chunk_id == CUES ? "CUES" : "CUEX"), start_offset, chunk_size, session_number, number_tracks, (session_mode == 0x41 ? "Mode2" : (session_mode == 0x01 ? "Audio" : "Unknown")), session_start_LBA);
+      new_session->start_lba = fread32u(image_file);
+      ver_printf(3, "  %s at 0x%X:\n    Size - %d B, Session %d has %d track(s) using mode %s and starting at 0x%X.\n", (chunk_id == CUES ? "CUES" : "CUEX"), chunk_offset, chunk_size, session_number, new_session->number_tracks, (new_session->session_mode == 0x41 ? "Mode2" : (new_session->session_mode == 0x01 ? "Audio" : "Unknown")), new_session->start_lba);
 
       int i = 1;
-      for (i = 1; i <= number_tracks; i++, track_number++) {
-        uint8_t pretrack_mode  = fread8u(image_file);
+      for (i = 1; i <= new_session->number_tracks; i++, track_number++) {
+        // Each of these middle chunks holds a bit of data about one track for the session.
+        // Allocate and add the new track
+        nrg_track *new_track = alloc_nrg_track();
+        add_nrg_track(new_session, new_track);
+
+        new_track->pretrack_mode  = fread8u(image_file);
         assert(fread8u(image_file) == track_number);    // Track number
         assert(fread8u(image_file) == 0x00); // Track index
         assert(fread8u(image_file) == 0x00); // 0x00
-        uint32_t pretrack_LBA = fread32u(image_file);
+        new_track->pretrack_lba = fread32u(image_file);
 
-        uint8_t track_mode = fread8u(image_file);
+        new_track->track_mode = fread8u(image_file);
         assert(fread8u(image_file) == track_number);    // Track number
         assert(fread8u(image_file) == 0x01); // Track index
         assert(fread8u(image_file) == 0x00); // 0x00
-        uint32_t track_LBA = fread32u(image_file);
+        new_track->track_lba = fread32u(image_file);
 
-        ver_printf(3, "      Track %d: Index 0 uses mode %s and starts at LBA 0x%X, ", i, (pretrack_mode == 0x41 ? "Mode2" : (pretrack_mode == 0x01 ? "Audio" : "Unknown")), pretrack_LBA);
-        ver_printf(3, "Index 1 uses mode %s and starts at LBA 0x%X.\n", (track_mode == 0x41 ? "Mode2" : (track_mode == 0x01 ? "Audio" : "Unknown")), track_LBA);
+        ver_printf(3, "      Track %d: Index 0 uses mode %s and starts at LBA 0x%X, ", i, (new_track->pretrack_mode == 0x41 ? "Mode2" : (new_track->pretrack_mode == 0x01 ? "Audio" : "Unknown")), new_track->pretrack_lba);
+        ver_printf(3, "Index 1 uses mode %s and starts at LBA 0x%X.\n", (new_track->track_mode == 0x41 ? "Mode2" : (new_track->track_mode == 0x01 ? "Audio" : "Unknown")), new_track->track_lba);
       }
 
       // Skip junk
-      // TODO: track the version number and re-enable this assertion, but only for NRG_VER_55
-      //       assert(fread8u(image_file) == session_mode); // Mode
-      fread8u(image_file);
+      // Nero 5.5 images always have the session mode here but 5.0 images generated by cdi2nero have a 0x00 here.
+      if (image->nrg_version == NRG_VER_55)
+        assert(fread8u(image_file) == new_session->session_mode);
+      else
+        fread8u(image_file);
       assert(fread8u(image_file) == 0xaa);         // 0xAA
       assert(fread8u(image_file) == 0x01);         // 0x01
       assert(fread8u(image_file) == 0x00);         // 0x00
 
-      uint32_t session_end_LBA = fread32u(image_file);
-      ver_printf(3, "    Session ends at LBA 0x%X\n", session_end_LBA);
+      new_session->end_lba = fread32u(image_file);
+      ver_printf(3, "    Session ends at LBA 0x%X\n", new_session->end_lba);
 
       session_number++;
     }
@@ -308,7 +321,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
       uint8_t first_track = fread8u(image_file);
       uint8_t last_track  = fread8u(image_file);
 
-      ver_printf(3, "  DAOI at 0x%X:\n    Size - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X\n", start_offset, chunk_size, toc_type, first_track, last_track);
+      ver_printf(3, "  DAOI at 0x%X:\n    Size - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X\n", chunk_offset, chunk_size, toc_type, first_track, last_track);
       ver_printf(3, "    Session has %d tracks:\n", number_tracks);
 
 
@@ -357,7 +370,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
       uint8_t first_track = fread8u(image_file);
       uint8_t last_track  = fread8u(image_file);
 
-      ver_printf(3, "  DAOX at 0x%X:\n    Size - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X\n", start_offset, chunk_size, toc_type, first_track, last_track);
+      ver_printf(3, "  DAOX at 0x%X:\n    Size - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X\n", chunk_offset, chunk_size, toc_type, first_track, last_track);
       ver_printf(3, "    Session has %d track(s):\n", number_tracks);
 
       int i = 1;
@@ -379,7 +392,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
       * CDTX (CD Text) format:
       *   18 B           CD-text pack
       */
-      ver_printf(3, "  CDTX at 0x%X: Size - %dB\n", start_offset, chunk_size);
+      ver_printf(3, "  CDTX at 0x%X: Size - %dB\n", chunk_offset, chunk_size);
       fseek(image_file, chunk_size, SEEK_CUR);
     }
     else if (chunk_id == ETNF) {
@@ -399,7 +412,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
       uint32_t start_lba    = fread32u(image_file);
       assert(fread32u(image_file) == 0x00);
 
-      ver_printf(3, "  ENTF at 0x%X:\n    Size - %d B, Track Offset - 0x%X, Track Length - %d B, Mode - %s, Start LBA - 0x%X\n", start_offset, chunk_size, track_offset, track_length, (track_mode == 0x03 ? "Mode2/2336" : (track_mode == 0x06 ? "Mode2/2352" : (track_mode == 0x07 ? "Audio/2352" : "Unknown"))), start_lba);
+      ver_printf(3, "  ENTF at 0x%X:\n    Size - %d B, Track Offset - 0x%X, Track Length - %d B, Mode - %s, Start LBA - 0x%X\n", chunk_offset, chunk_size, track_offset, track_length, (track_mode == 0x03 ? "Mode2/2336" : (track_mode == 0x06 ? "Mode2/2352" : (track_mode == 0x07 ? "Audio/2352" : "Unknown"))), start_lba);
     }
     else if (chunk_id == ETN2) {
       /**
@@ -417,7 +430,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
       uint32_t start_lba    = fread32u(image_file);
       assert(fread64u(image_file) == 0x00);
 
-      ver_printf(3, "  ENT2 at 0x%X:\n    Size - %d B, Track Offset - 0x%X, Track Length - %d B, Mode - %s, Start LBA - 0x%X\n", start_offset, chunk_size, track_offset, track_length, (track_mode == 0x03 ? "Mode2/2336" : (track_mode == 0x06 ? "Mode2/2352" : (track_mode == 0x07 ? "Audio/2352" : "Unknown"))), start_lba);
+      ver_printf(3, "  ENT2 at 0x%X:\n    Size - %d B, Track Offset - 0x%X, Track Length - %d B, Mode - %s, Start LBA - 0x%X\n", chunk_offset, chunk_size, track_offset, track_length, (track_mode == 0x03 ? "Mode2/2336" : (track_mode == 0x06 ? "Mode2/2352" : (track_mode == 0x07 ? "Audio/2352" : "Unknown"))), start_lba);
     }
     else if (chunk_id == SINF) {
       /**
@@ -426,7 +439,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
       */
       uint32_t number_tracks = fread32u(image_file);
 
-      ver_printf(3, "  SINF at 0x%X: Size - %dB, Number of Tracks: %d\n", start_offset, chunk_size, number_tracks);
+      ver_printf(3, "  SINF at 0x%X: Size - %dB, Number of Tracks: %d\n", chunk_offset, chunk_size, number_tracks);
     }
     else if (chunk_id == MTYP) {
       /**
@@ -435,14 +448,14 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
       */
       uint32_t mystery_int  = fread32u(image_file);
 
-      ver_printf(3, "  MTYP at 0x%X:  Size - %dB, ? - 0x%X\n", start_offset, chunk_size, mystery_int);
+      ver_printf(3, "  MTYP at 0x%X:  Size - %dB, ? - 0x%X\n", chunk_offset, chunk_size, mystery_int);
     }
     else if (chunk_id == END) {
-      ver_printf(3, "  END! at 0x%X\n", start_offset);
+      ver_printf(3, "  END! at 0x%X\n", chunk_offset);
       break;
     }
     else {
-      fprintf(stderr, "  Unrecognized Chunk ID at ox%X: 0x%X.\n", start_offset, chunk_id);
+      fprintf(stderr, "  Unrecognized Chunk ID at ox%X: 0x%X.\n", chunk_offset, chunk_id);
       r = NRG_WARN;
     }
   }

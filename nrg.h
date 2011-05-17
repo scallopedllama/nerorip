@@ -27,6 +27,7 @@
 #include <assert.h>
 #include "util.h"
 
+// Nero Image defines
 #define NER5 0x4e455235
 #define NERO 0x4e45524f
 #define CUES 0x43554553
@@ -39,10 +40,15 @@
 #define SINF 0x53494e46
 #define MTYP 0x4d545950
 #define END  0x454e4421
+#define MODE2 0x41
+#define AUDIO 0x01
 
 // Defines nero image versions
 #define NRG_VER_55 2
 #define NRG_VER_5 1
+// Defines burn modes
+#define DAO 0
+#define TAO 1
 // Indicates that the nrg_image struct hasn't been processed yet
 #define UNPROCESSED 0
 // Indicates that the image file does not appear to be a nero image
@@ -67,7 +73,17 @@
 typedef struct {
   // Pointer to the next track
   struct nrg_track *next;
+
+  /*
+   * Track data
+   */
+  uint8_t pretrack_mode;
+  uint32_t pretrack_lba;
+  uint8_t track_mode;
+  uint32_t track_lba;
+
 } nrg_track;
+
 
 /**
  * Nero image session struct
@@ -84,7 +100,19 @@ typedef struct {
   // Pointer to the front of the list of tracks in this session and the number of them
   nrg_track *first_track, *last_track;
   int number_tracks;
+
+  /*
+   * Session Data
+   */
+  // The Mode to be used for burning this session. Either DAO or TAO
+  uint8_t burn_mode;
+  // The Mode defined for this session. Either MODE2 or AUDIO
+  uint8_t session_mode;
+  // The lba at which the session starts and ends
+  uint32_t start_lba, end_lba;
+
 } nrg_session;
+
 
 /**
  * Nero image track struct
@@ -94,14 +122,20 @@ typedef struct {
  * @author Joe Balough
  */
 typedef struct {
-  // Version of this image file. Should be NRG_VER_5 or NRG_VER_55
-  int nrg_version;
-  // Where the first bit of chunk data lies
-  uint64_t first_chunk_offset;
-
   // Pointer to the list of sessions and number of sessions
   nrg_session *first_session, *last_session;
   int number_sessions;
+
+  /*
+   * Image data
+   */
+
+  // Where the first bit of chunk data lies
+  uint64_t first_chunk_offset;
+  // Version of this image file. Should be NRG_VER_5 or NRG_VER_55
+  int nrg_version;
+
+
 } nrg_image;
 
 
