@@ -46,6 +46,9 @@
 #define TOC_AUDIO 0x00
 #define DAO_MODE2 0x03000001
 #define DAO_AUDIO 0x07000001
+#define ENT_MODE2_2336 0x03
+#define ENT_MODE2_2352 0x06
+#define ENT_AUDIO      0x07
 
 // Defines nero image versions
 #define NRG_VER_55 2
@@ -96,6 +99,9 @@ typedef struct {
   uint64_t index0, index1;
   // Where index 1 track data ends
   uint64_t next_offset;
+
+  // Length of track index 1 data in bytes
+  uint64_t length;
 
 } nrg_track;
 
