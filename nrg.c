@@ -337,18 +337,9 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
 
         uint32_t sector_size = fread32u(image_file);
         uint32_t mode        = fread32u(image_file);
-
-        uint64_t index0, index1, next_offset;
-        if (chunk_id == DAOI) {
-          index0      = (uint64_t) fread32u(image_file);
-          index1      = (uint64_t) fread32u(image_file);
-          next_offset = (uint64_t) fread32u(image_file);
-        }
-        else {
-          index0      = fread64u(image_file);
-          index1      = fread64u(image_file);
-          next_offset = fread64u(image_file);
-        }
+        uint64_t index0      = (chunk_id == DAOI) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
+        uint64_t index1      = (chunk_id == DAOI) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
+        uint64_t next_offset = (chunk_id == DAOI) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
 
         ver_printf(3, "      Track %d: Sector Size - %d B, Mode - %s, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, sector_size, (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other")), index0, index1, next_offset);
       }
