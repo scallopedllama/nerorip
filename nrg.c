@@ -207,26 +207,28 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
       *   Indicates a disc at once image
       *   Chunk size = (# tracks + 1) * 16
       *
-      * 1 B     Mode                         (0x41 = mode2, 0x01 = audio)
-      * 1 B     Track number                 0x00
-      * 1 B     Index                        0x00
-      * 1 B     00
-      * 4 B     V1: MM:SS:FF=0; V2: StartLBA ((LBA for S1T1 is 0xffffff6a) (MSF = 00:00:00))
-      * ---
-      * 1 B     Mode
-      * 1 B     Track number                 (First is 1, increments over tracks in ALL sessions)
-      * 1 B     Index                        (0x00, which is pregap for track)
-      * 1 B     00
-      * 4 B     V1: MMSSFF; V2: LBA          (MMSSFF = index) (S1T1's LBA is 0xffffff6a)
-      * 1 B     Mode
-      * 1 B     Track number                 (First is 1, increments over tracks in ALL sessions)
-      * 1 B     Index                        (0x01, which is main track)
-      * 1 B     00
-      * 4 B     V1: MMSSFF; V2: LBA          (MMSSFF = index) (LBA is where track actually starts)
-      * ... Repeat for each track in session
-      * ---
-      * 4 B    mm AA 01 00   mm = mode (if version 2)
-      * 4 B    V1: Last MMSSFF; V2: Last LBA (MMSSFF == index1 + length)
+      *   5.0  | Description                    | Notes
+      * --------------------------------------------------------------------------------------------------------------------
+      *   1 B  | Mode                           | 0x41 = mode2, 0x01 = audio
+      *   1 B  | Track number                   | 0x00
+      *   1 B  | Index                          | 0x00
+      *   1 B  | 00
+      *   4 B  | v5 MM:SS:FF = 0; v5.5 StartLBA | s1t1 is LBA = 0xffffff6a, MSF = 00:00:00
+      * --------------------------------------------------------------------------------------------------------------------
+      *   1 B  | Mode
+      *   1 B  | Track number                   | First is 1, increments over tracks in ALL sessions
+      *   1 B  | Index                          | 0x00, which is pregap for track
+      *   1 B  | 00
+      *   4 B  | V1: MMSSFF; V2: LBA            | MMSSFF = index, s1t1's LBA is 0xffffff6a
+      *   1 B  | Mode
+      *   1 B  | Track number                   | First is 1, increments over tracks in ALL sessions
+      *   1 B  | Index                          | 0x01, which is main track
+      *   1 B  | 00
+      *   4 B  | V1: MMSSFF; V2: LBA            | MMSSFF = index, LBA is where track actually starts
+      *   ... Repeat for each track in session
+      * --------------------------------------------------------------------------------------------------------------------
+      *   4 B  | mm AA 01 00                    | mm = mode (if version 2)
+      *   4 B  | V1: Last MMSSFF; V2: Last LBA  | MMSSFF = index1 + length
       *
       * About the LBA: The first LBA is the starting LBA for this session. If it's the first session, it's usually 0xffffff6a.
       *                The middle part repeats once for each track. The first LBA is the pre-start LBA for the track and the
@@ -295,7 +297,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
     else if (chunk_id == DAOI || chunk_id == DAOX) {
       /**
       * DAOI (DAO Information) format:
-      *   5.0  | 5.5  | Description                  | notes
+      *   5.0  | 5.5  | Description                  | Notes
       * --------------------------------------------------------------------------------------------------------------------
       *   4  B | 4  B | Chunk size (bytes) again     | v5 = (# tracks * 30) + 22,  v5.5 = (# tracks * 42) + 22
       *   14 B | 14 B | UPC?
