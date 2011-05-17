@@ -49,7 +49,7 @@ void usage(char *argv0) {
   fprintf(stderr, "  one iso file named \"data.sSStTT.iso\" if the track is data and\n");
   fprintf(stderr, "  one wav file named \"audio.sSStTT.wav\" if the track is audio\n");
   fprintf(stderr, "where SS is the session number and TT is the track number.\n");
-  fprintf(stderr, "Also, for each session in the iamge, nerorip will output one cue file.");
+  fprintf(stderr, "Also, for each session in the image, nerorip will output one cue file.\n\n");
 
   fprintf(stderr, "For example, if your disc image is like the following\n");
   fprintf(stderr, "  Session 1:\n    Track 1: Audio\n    Track 2: Data\n  Session 2:\n    Track 1: Data\n");
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
     {"version",  no_argument, 0, 'V'},
     {0, 0, 0, 0}
   };
-  
+
   // Loop through all the passed options
   int c;
   while ((c = getopt_long (argc, argv, "ivqhV", long_options, NULL)) != -1) {
@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
   }
   // Print simple welcome message
   ver_printf(1, "neorip v%s\n", VERSION);
-  
+
   // Now that all the getopt options have been parsed, that only leaves the input file and output directory.
   // Those two values should be in argv[optind] and argv[optind + 1]
   // Make sure they were actually provided before accessing them
@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error: No input file provided\n\n");
     usage(argv[0]);
   }
-  
+
   char *input_str = argv[optind];
   ver_printf(2, "Opening file %s\n", input_str);
   FILE *image_file = fopen(input_str, "rb");
@@ -127,14 +127,14 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error opening %s: %s\n", input_str, strerror(errno));
     exit(EXIT_FAILURE);
   }
-  
+
   // Figure out output directory
   char *output_dir = getenv("PWD");
   if (optind + 2 == argc)
     output_dir = argv[optind + 1];
   if (!info_only)
     ver_printf(2, "Outputing data to %s\n", output_dir);
-  
+
   ver_printf(2, "Allocating memory and getting image version\n");
   nrg_image *image = malloc(sizeof(nrg_image));
   if (get_nrg_version(image_file, image) == NOT_NRG) {
