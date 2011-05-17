@@ -276,6 +276,8 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
         assert(fread8u(image_file) == 0x00); // 0x00
         new_track->track_lba = fread32u(image_file);
 
+        assert(new_track->pretrack_mode == new_track->track_mode);
+
         ver_printf(3, "      Track %d: Index 0 uses mode %s and starts at LBA 0x%X, ", i, (new_track->pretrack_mode == 0x41 ? "Mode2" : (new_track->pretrack_mode == 0x01 ? "Audio" : "Unknown")), new_track->pretrack_lba);
         ver_printf(3, "Index 1 uses mode %s and starts at LBA 0x%X.\n", (new_track->track_mode == 0x41 ? "Mode2" : (new_track->track_mode == 0x01 ? "Audio" : "Unknown")), new_track->track_lba);
       }
@@ -315,33 +317,45 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
       *   4  B | 8  B | Next offset                  | = index1 + track length
       * ... Repeat for each track in this session
       */
+      // When a DAOI / DAOX tag is encountered, it's talking about the last session described by a CUES / CUEX chunk
+      nrg_session *session = image->last_session;
+
       // # tracks
-      int number_tracks = (fread32u(image_file) - 22) / 30;
+      assert(session->number_tracks == (fread32u(image_file) - 22) / 30);
 
       // Skip UPC
       fseek(image_file, 14, SEEK_CUR);
 
-      uint8_t toc_type    = fread8u(image_file);
+      session->toc_type    = fread8u(image_file);
       fread8u(image_file); // close cd
-      uint8_t first_track = fread8u(image_file);
-      uint8_t last_track  = fread8u(image_file);
+      session->first_track_number = fread8u(image_file);
+      session->last_track_number  = fread8u(image_file);
 
       ver_printf(3, "  %s at 0x%X:  Size - %dB\n", (chunk_id == DAOI ? "DAOI" : "DAOX"), chunk_offset, chunk_size);
-      ver_printf(3, "    Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X, has %d track(s)\n", toc_type, first_track, last_track, number_tracks);
+      ver_printf(3, "    Toc Type - %s, First Track - %d, Last Track - %d, has %d track(s)\n", (session->toc_type == TOC_MODE2 ? "Mode2" : (session->toc_type == TOC_AUDIO ? "Audio" : "Unknown")), session->first_track_number, session->last_track_number, session->number_tracks);
 
-      int i = 1;
-      for (i = 1; i <= number_tracks; i++)
+      // Each track in the session should be described now
+      int i = 0;
+      nrg_track *track;
+      for (track = session->first_track; track != NULL; track = track->next, i++)
       {
         // Skip ISRC Code
         fseek(image_file, 10, SEEK_CUR);
 
-        uint32_t sector_size = fread32u(image_file);
-        uint32_t mode        = fread32u(image_file);
-        uint64_t index0      = (chunk_id == DAOI) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
-        uint64_t index1      = (chunk_id == DAOI) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
-        uint64_t next_offset = (chunk_id == DAOI) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
+        // Read track data
+        track->sector_size = fread32u(image_file);
+        uint32_t mode       = fread32u(image_file);
+        track->index0      = (chunk_id == DAOI) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
+        track->index1      = (chunk_id == DAOI) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
+        track->next_offset = (chunk_id == DAOI) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
 
-        ver_printf(3, "      Track %d: Sector Size - %d B, Mode - %s, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, sector_size, (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other")), index0, index1, next_offset);
+        // Assert that the mode read here is the same as that read in CUES / CUEX
+        if (mode == DAO_MODE2)
+          assert(track->track_mode == MODE2);
+        else if (mode == DAO_AUDIO)
+          assert(track->track_mode == AUDIO);
+
+        ver_printf(3, "      Track %d: Sector Size - %d B, Mode - %s, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, track->sector_size, (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other")), track->index0, track->index1, track->next_offset);
       }
     }
     else if (chunk_id == ETNF || chunk_id == ETN2) {

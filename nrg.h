@@ -40,8 +40,12 @@
 #define SINF 0x53494e46
 #define MTYP 0x4d545950
 #define END  0x454e4421
-#define MODE2 0x41
-#define AUDIO 0x01
+#define MODE2     0x41
+#define AUDIO     0x01
+#define TOC_MODE2 0x20
+#define TOC_AUDIO 0x00
+#define DAO_MODE2 0x03000001
+#define DAO_AUDIO 0x07000001
 
 // Defines nero image versions
 #define NRG_VER_55 2
@@ -77,10 +81,21 @@ typedef struct {
   /*
    * Track data
    */
+  // Pretrack (index 0) and Track (index 1) Modes. Either MODE2 or AUDIO
   uint8_t pretrack_mode;
-  uint32_t pretrack_lba;
   uint8_t track_mode;
+
+  // Pretrack (index 0) and Track (index 1) LBAs
+  uint32_t pretrack_lba;
   uint32_t track_lba;
+
+  // Sector size used by this track
+  uint32_t sector_size;
+
+  // The offset in the image file where index 0 and 1 track data can be found.
+  uint64_t index0, index1;
+  // Where index 1 track data ends
+  uint64_t next_offset;
 
 } nrg_track;
 
@@ -110,6 +125,11 @@ typedef struct {
   uint8_t session_mode;
   // The lba at which the session starts and ends
   uint32_t start_lba, end_lba;
+
+  // The Table of Contents type. Either TOC_MODE2 or TOC_AUDIO
+  uint8_t toc_type;
+  // First and last track numbers
+  uint8_t first_track_number, last_track_number;
 
 } nrg_session;
 
