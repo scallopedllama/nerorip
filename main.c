@@ -136,7 +136,8 @@ int main(int argc, char **argv) {
     ver_printf(2, "Outputing data to %s\n", output_dir);
 
   ver_printf(2, "Allocating memory and getting image version\n");
-  nrg_image *image = malloc(sizeof(nrg_image));
+  nrg_image *image = alloc_nrg_image();
+
   if (get_nrg_version(image_file, image) == NOT_NRG) {
     fprintf(stderr, "File not a Nero image. Aborting.\n");
     exit(EXIT_FAILURE);
@@ -150,6 +151,6 @@ int main(int argc, char **argv) {
 
   // Cloes file and free ram
   fclose(image_file);
-  free(image);
+  free_nrg_image(image);
 }
 

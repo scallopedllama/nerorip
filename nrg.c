@@ -18,11 +18,67 @@
 
 #include "nrg.h"
 
+// Allocates memory for an nrg_image
+nrg_image *alloc_nrg_image() {
+  // Do the malloc
+  nrg_image *r = malloc(sizeof(nrg_image));
+
+  // Make sure it didn't fail
+  if (!r) {
+    fprintf(stderr, "Failed to allocate memory for nrg_image structure: %s\n", strerror(errno));
+    exit(EXIT_FAILURE);
+  }
+
+  //Initialize some variables in there and return the pointer
+  r->nrg_version = UNPROCESSED;
+  r->first_chunk_offset = 0x00;
+  r->sessions = NULL;
+  r->number_sessions = 0;
+
+  return r;
+}
+
+
+// Frees memory used by an nrg_image
+void free_nrg_image(nrg_image *image) {
+  // Make sure image was allocated in the first place
+  if (!image)
+    return;
+
+  // Loop through all the sessions
+  nrg_session *s;
+  for (s = image->sessions; s != NULL; ) {
+
+    // Loop through all the tracks in this session
+    nrg_track *t;
+    for (t = s->tracks; t != NULL; ) {
+
+      // Get the next track before freeing this one
+      nrg_track *next_track = t->next;
+
+      // Free this track
+      free(t);
+
+      // reset t
+      t = next_track;
+    }
+
+    // Now that all the tracks have been freed, free this session
+    nrg_session *next_session = s;
+    free(s);
+    s = next_session;
+  }
+
+  // It's now safe to free the image
+  free(image);
+  image = NULL;
+}
+
 // detects nrg file version and saves to data structure
 int get_nrg_version(FILE *image_file, nrg_image *image) {
   // make sure image has been allocated
   if (!image) return NON_ALLOC;
-  
+
   // Seek to 12 bytes from the end and try to read the footer.
   fseek(image_file, -12, SEEK_END);
 
@@ -37,9 +93,9 @@ int get_nrg_version(FILE *image_file, nrg_image *image) {
     image->nrg_version = NRG_VER_5;
   }
   // If it wasn't either of the above, it must not be a nero image.
-  else 
+  else
     image->nrg_version = NOT_NRG;
-  
+
   return image->nrg_version;
 }
 
@@ -48,9 +104,9 @@ int get_nrg_version(FILE *image_file, nrg_image *image) {
  */
 void process_next_chunk(FILE *input_image) {
   ver_printf(3, "Processing Chunk data:\n");
-  
+
   while (1) {
-    
+
     // Chunk data came from the source for libdiscmage available at http://sourceforge.net/projects/discmage/
     // The chunk ID and chunk size are always 32 bit integers
     const long int start_offset = ftell(input_image);
@@ -102,7 +158,7 @@ void process_next_chunk(FILE *input_image) {
       assert(fread8u(input_image) == 0x00); // Index
 
       uint32_t session_start_LBA = fread32u(input_image);
-      ver_printf(3, "  %s at 0x%X:\n    Size - %d B, Session %d has %d tracks using mode %s and starting at 0x%X.\n", (chunk_id == CUES ? "CUES" : "CUEX"), start_offset, chunk_size, session_number, number_tracks, (session_mode == 0x41 ? "Mode2" : (session_mode == 0x01 ? "Audio" : "Unknown")), session_start_LBA);
+      ver_printf(3, "  %s at 0x%X:\n    Size - %d B, Session %d has %d track(s) using mode %s and starting at 0x%X.\n", (chunk_id == CUES ? "CUES" : "CUEX"), start_offset, chunk_size, session_number, number_tracks, (session_mode == 0x41 ? "Mode2" : (session_mode == 0x01 ? "Audio" : "Unknown")), session_start_LBA);
 
       int i = 1;
       for (i = 1; i <= number_tracks; i++, track_number++) {
@@ -214,7 +270,7 @@ void process_next_chunk(FILE *input_image) {
       uint8_t last_track  = fread8u(input_image);
 
       ver_printf(3, "  DAOX at 0x%X:\n    Size - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X\n", start_offset, chunk_size, toc_type, first_track, last_track);
-      ver_printf(3, "    Session has %d tracks:\n", number_tracks);
+      ver_printf(3, "    Session has %d track(s):\n", number_tracks);
 
       int i = 1;
       for (i = 1; i <= number_tracks; i++)

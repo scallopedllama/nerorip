@@ -43,6 +43,7 @@
 #define NRG_VER_55 2
 #define NOT_NRG -1
 #define NON_ALLOC -2
+#define UNPROCESSED 0
 
 /*
  * DATA STRUCTURES
@@ -103,14 +104,36 @@ typedef struct {
  */
 
 /**
+ * Allocate memory for a nrg_image struct and return a pointer to it.
+ * @return *nrg_image
+ *   A pointer to the properly allocated nrg_image struct
+ * @author Joe Balough
+ */
+nrg_image *alloc_nrg_image();
+
+
+/**
+ * Free memory used by an nrg_image struct properly.
+ * Will also free memory for all nrg_session and nrg_track data.
+ * If image wasn't allocated, it will simply return without doing anything.
+ *
+ * @param *nrg_image image
+ *   nrg_image structure to free
+ * @author Joe Balough
+ */
+void free_nrg_image(nrg_image *image);
+
+
+/**
  * Process the next chunk of data starting from the file's current position.
  */
 void process_next_chunk(FILE*);
 
+
 /**
  * Detects the version of the NRG file and stores that value in the
  * passed nrg_image datastructure
- * 
+ *
  * @param FILE*
  *   The image file to read. Should already have been opened.
  * @param nrg_image*
