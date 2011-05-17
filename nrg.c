@@ -292,22 +292,24 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
 
       session_number++;
     }
-    else if (chunk_id == DAOI) {
+    else if (chunk_id == DAOI || chunk_id == DAOX) {
       /**
       * DAOI (DAO Information) format:
-      *   4  B   Chunk size (bytes) again        (= (# tracks * 30) + 22)
-      *   14 B   UPC?
-      *   1  B   Toc type                        (0x20 = Mode2, 0x00 = Audio?)
-      *   1  B   close_cd?                       (1 = doesn't work, usually 0)
-      *   1  B   First track                     (Usually 0x01)
-      *   1  B   Last track                      (Usually = # tracks)
-      * ---
-      *   10 B   ISRC Code?
-      *   4  B   Sector size
-      *   4  B   Mode                            (mode2 = 0x03000001, audio = 0x07000001)
-      *   4  B   Index0 start offset
-      *   4  B   Index1 start offset             (= index0 + pregap length)
-      *   4  B   Next offset                     (= index1 + track length
+      *   5.0  | 5.5  | Description                  | notes
+      * --------------------------------------------------------------------------------------------------------------------
+      *   4  B | 4  B | Chunk size (bytes) again     | v5 = (# tracks * 30) + 22,  v5.5 = (# tracks * 42) + 22
+      *   14 B | 14 B | UPC?
+      *   1  B | 1  B | Toc type                     | 0x20 = Mode2, 0x00 = Audio?
+      *   1  B | 1  B | close_cd?                    | 1 = doesn't work, usually 0
+      *   1  B | 1  B | First track                  | Usually 0x01
+      *   1  B | 1  B | Last track                   | Usually = # tracks
+      * --------------------------------------------------------------------------------------------------------------------
+      *   10 B | 10 B | ISRC Code?
+      *   4  B | 4  B | Sector size
+      *   4  B | 4  B | Mode                         | mode2 = 0x03000001, audio = 0x07000001
+      *   4  B | 8  B | Index0 start offset
+      *   4  B | 8  B | Index1 start offset          | = index0 + pregap length
+      *   4  B | 8  B | Next offset                  | = index1 + track length
       * ... Repeat for each track in this session
       */
       // # tracks
@@ -321,57 +323,8 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
       uint8_t first_track = fread8u(image_file);
       uint8_t last_track  = fread8u(image_file);
 
-      ver_printf(3, "  DAOI at 0x%X:\n    Size - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X\n", chunk_offset, chunk_size, toc_type, first_track, last_track);
-      ver_printf(3, "    Session has %d tracks:\n", number_tracks);
-
-
-      int i = 1;
-      for (i = 1; i <= number_tracks; i++)
-      {
-        // Skip ISRC Code
-        fseek(image_file, 10, SEEK_CUR);
-
-        uint32_t sector_size = fread32u(image_file);
-        uint32_t mode        = fread32u(image_file);
-        uint32_t index0      = fread32u(image_file);
-        uint32_t index1      = fread32u(image_file);
-        uint32_t next_offset = fread32u(image_file);
-        ver_printf(3, "      Track %d: Sector Size - %d B, Mode - %s, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, sector_size, (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other")), index0, index1, next_offset);
-      }
-    }
-    else if (chunk_id == DAOX) {
-      /**
-      * DAOX (DAO Information) format:
-      *   4  B    Chunk size (bytes) again    ( = (# tracks * 42) + 22 )
-      *   14 B    UPC?
-      *   1  B    Toc type                    (0x20 = Mode2, 0x00 = Audio?)
-      *   1  B    Close CD?                   (1 = doesn't work)
-      *   1  B    First track                 (Usually 0x01)
-      *   1  B    Last track                  (Usually = tracks)
-      * ---
-      *   10 B    ISRC Code?
-      *   4  B    Sector size
-      *   4  B    Mode                        (mode2 = 0x03000001, audio = 0x07000001)
-      *   8  B    Index0 start offset
-      *   8  B    Index1                      (= index0 + pregap length)
-      *   8  B    Next offset                 (= index1 + track length)
-      *   ... Repeat for each track in session
-      *
-      *  It looks like either Index0 or Index1 is the file location where the actual image data lies. DC images' audio data is just straight 00's.
-      */
-      // # tracks
-      int number_tracks = (fread32u(image_file) - 22) / 30;
-
-      // Skip UPC
-      fseek(image_file, 14, SEEK_CUR);
-
-      uint8_t toc_type    = fread8u(image_file);
-      fread8u(image_file); // close cd
-      uint8_t first_track = fread8u(image_file);
-      uint8_t last_track  = fread8u(image_file);
-
-      ver_printf(3, "  DAOX at 0x%X:\n    Size - %dB, Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X\n", chunk_offset, chunk_size, toc_type, first_track, last_track);
-      ver_printf(3, "    Session has %d track(s):\n", number_tracks);
+      ver_printf(3, "  %s at 0x%X:  Size - %dB\n", (chunk_id == DAOI ? "DAOI" : "DAOX"), chunk_offset, chunk_size);
+      ver_printf(3, "    Toc Type - 0x%X, First Track - 0x%X, Last Track - 0x%X, has %d track(s)\n", toc_type, first_track, last_track, number_tracks);
 
       int i = 1;
       for (i = 1; i <= number_tracks; i++)
@@ -381,9 +334,19 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
 
         uint32_t sector_size = fread32u(image_file);
         uint32_t mode        = fread32u(image_file);
-        uint64_t index0      = fread64u(image_file);
-        uint64_t index1      = fread64u(image_file);
-        uint64_t next_offset = fread64u(image_file);
+
+        uint64_t index0, index1, next_offset;
+        if (chunk_id == DAOI) {
+          index0      = (uint64_t) fread32u(image_file);
+          index1      = (uint64_t) fread32u(image_file);
+          next_offset = (uint64_t) fread32u(image_file);
+        }
+        else {
+          index0      = fread64u(image_file);
+          index1      = fread64u(image_file);
+          next_offset = fread64u(image_file);
+        }
+
         ver_printf(3, "      Track %d: Sector Size - %d B, Mode - %s, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, sector_size, (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other")), index0, index1, next_offset);
       }
     }
