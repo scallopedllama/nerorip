@@ -256,4 +256,16 @@ void add_nrg_session(nrg_image *image, nrg_session *session);
 int nrg_parse(FILE *image_file, nrg_image *image);
 
 
+/**
+ * Print out all gathered information about the passed nrg image.
+ *
+ * @param int verbosity
+ *   On what verbosity level should the data be printed
+ * @param nrg_image *image
+ *   Pointer to the loaded nrg_image data structure
+ * @author Joe Balough
+ */
+void nrg_print(int verbosity, nrg_image *image);
+
+
 #endif

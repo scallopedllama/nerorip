@@ -138,6 +138,11 @@ int main(int argc, char **argv) {
 
   // Parse the image file
   nrg_parse(image_file, image);
+  ver_printf(3, "\n");
+
+  // Print the collected information
+  nrg_print(1, image);
+
 
   // Cloes file and free ram
   ver_printf(3, "Cleaning up\n");

@@ -358,7 +358,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
         else if (mode == DAO_AUDIO)
           assert(track->track_mode == AUDIO);
 
-        ver_printf(3, "      Track %d: Mode - %s/%d, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other")), track->sector_size, track->index0, track->index1, track->next_offset);
+        ver_printf(3, "      Track %d: Type - %s/%d, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other")), track->sector_size, track->index0, track->index1, track->next_offset);
       }
     }
     else if (chunk_id == ETNF || chunk_id == ETN2) {
@@ -396,6 +396,9 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
         track->track_mode = fread32u(image_file);
         track->track_lba  = fread32u(image_file);
 
+        track->pretrack_mode = track->track_mode;
+        track->pretrack_lba  = track->track_lba;
+
         // Convert the track mode
         if (track->track_mode == ENT_MODE2_2336) {
           track->track_mode = MODE2;
@@ -414,7 +417,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
         track->pretrack_mode = track->track_mode;
         assert( ((chunk_id == ETNF) ? fread32u(image_file) : fread64u(image_file)) == 0x00);
 
-        ver_printf(3, "    Track Offset - 0x%X, Track Length - %d B, Mode - %s/%d, Start LBA - 0x%X\n",  track->index1, track->length, (track->track_mode == MODE2 ? "Mode2" : (track->track_mode == AUDIO ? "Audio" : "Unknown")), track->sector_size, track->track_lba);
+        ver_printf(3, "    Track Offset - 0x%X, Track Length - %d B, Type - %s/%d, Start LBA - 0x%X\n",  track->index1, track->length, (track->track_mode == MODE2 ? "Mode2" : (track->track_mode == AUDIO ? "Audio" : "Unknown")), track->sector_size, track->track_lba);
       }
     }
     else if (chunk_id == CDTX) {
@@ -501,4 +504,25 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
 
   ver_printf(3, "Done processing chunk data.\n");
   return r;
+}
+
+
+// Prints out all gathered information about the nrg image
+void nrg_print(int ver, nrg_image *image) {
+  ver_printf(ver, "Loaded a Nero %s image containing the following data:\n", (image->nrg_version == NRG_VER_55 ? "5.5" : "5.0"));
+
+  // All session data
+  nrg_session *session;
+  unsigned int s = 1, t = 1;
+  for (session = image->first_session; session != NULL; session = session->next, s++) {
+    ver_printf(ver, "  Session %d has %d tracks:\n", s, session->number_tracks);
+
+    // All tracks in this session
+    nrg_track *track;
+    for (track = session->first_track; track != NULL; track = track->next, t++) {
+      ver_printf(ver, "    Track: %d\tType: %s/%d\tSize: %d\tLBA: %d\n", t, (track->track_mode == MODE2 ? "Mode2" : (track->track_mode == AUDIO ? "Audio" : "Unknown")), track->sector_size, track->length / track->sector_size, track->pretrack_lba);
+    }
+
+    ver_printf(ver, "\n");
+  }
 }
