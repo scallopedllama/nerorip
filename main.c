@@ -143,5 +143,7 @@ int main(int argc, char **argv) {
   ver_printf(3, "Cleaning up\n");
   fclose(image_file);
   free_nrg_image(image);
+
+  return EXIT_SUCCESS;
 }
 
