@@ -369,15 +369,20 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
     else if (chunk_id == CDTX) {
       /**
       * CDTX (CD Text) format:
-      *   18 B           CD-text pack
+      *   5.0  | 5.5  | Description                  | Notes
+      * --------------------------------------------------------------------------------------------------------------------
+      *  18 B  | 18 B | CD-text pack
       */
       ver_printf(3, "  CDTX at 0x%X: Size - %dB\n", chunk_offset, chunk_size);
+      ver_printf(2, "    Ignoring CDTX chunk (unsupported)\n");
       fseek(image_file, chunk_size, SEEK_CUR);
     }
     else if (chunk_id == SINF) {
       /**
       * SINF (Session Information) Format:
-      *   4 B    Number tracks in session
+      *   5.0  | 5.5  | Description                  | Notes
+      * --------------------------------------------------------------------------------------------------------------------
+      *   4 B  | 4 B  | Number tracks in session
       */
       static unsigned int sinf_number = 0;
       uint32_t number_tracks = fread32u(image_file);
@@ -412,11 +417,14 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
     else if (chunk_id == MTYP) {
       /**
       * MTYP (Media Type?) Format:
-      *   4 B         unknown
+      *   5.0  | 5.5  | Description                  | Notes
+      * --------------------------------------------------------------------------------------------------------------------
+      *   4 B  | 4 B  | unknown
       */
       image->media_type = fread32u(image_file);
 
       ver_printf(3, "  MTYP at 0x%X:  Size - %dB, Media Type - 0x%X\n", chunk_offset, chunk_size, image->media_type);
+      ver_printf(2, "    Ignoring MTYP Chunk (unsupported)\n");
     }
     else if (chunk_id == END) {
       ver_printf(3, "  END! at 0x%X\n", chunk_offset);
