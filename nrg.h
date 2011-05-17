@@ -99,7 +99,7 @@ typedef struct {
 
   // Pointer to the front of the list of tracks in this session and the number of them
   nrg_track *first_track, *last_track;
-  int number_tracks;
+  unsigned int number_tracks;
 
   /*
    * Session Data
@@ -124,7 +124,7 @@ typedef struct {
 typedef struct {
   // Pointer to the list of sessions and number of sessions
   nrg_session *first_session, *last_session;
-  int number_sessions;
+  unsigned int number_sessions;
 
   /*
    * Image data
@@ -134,7 +134,8 @@ typedef struct {
   uint64_t first_chunk_offset;
   // Version of this image file. Should be NRG_VER_5 or NRG_VER_55
   int nrg_version;
-
+  // Value from the MTYP chunk (0x0 if not set)
+  uint32_t media_type;
 
 } nrg_image;
 

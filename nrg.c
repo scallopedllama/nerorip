@@ -257,7 +257,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
       ver_printf(3, "  %s at 0x%X: Size - %d B\n", (chunk_id == CUES ? "CUES" : "CUEX"), chunk_offset, chunk_size);
       ver_printf(3, "    Session %d has %d track(s) using mode %s and starting at 0x%X.\n", session_number, new_session->number_tracks, (new_session->session_mode == 0x41 ? "Mode2" : (new_session->session_mode == 0x01 ? "Audio" : "Unknown")), new_session->start_lba);
 
-      int i = 1;
+      unsigned int i = 1;
       for (i = 1; i <= new_session->number_tracks; i++, track_number++) {
         // Each of these middle chunks holds a bit of data about one track for the session.
         // Allocate and add the new track
@@ -379,25 +379,51 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
       * SINF (Session Information) Format:
       *   4 B    Number tracks in session
       */
+      static unsigned int sinf_number = 0;
       uint32_t number_tracks = fread32u(image_file);
-
       ver_printf(3, "  SINF at 0x%X: Size - %dB, Number of Tracks: %d\n", chunk_offset, chunk_size, number_tracks);
+
+      // Get the session this SINF tag should be referring to
+      unsigned int i;
+      nrg_session *relevant_session = image->first_session;
+      for (i = 0; i < sinf_number; i ++) {
+        if (relevant_session->next)
+          relevant_session = relevant_session->next;
+        else {
+          ver_printf(3, "    Warning: there are more SINF chunks than there are sessions\n");
+          r = NRG_WARN;
+          relevant_session = NULL;
+          break;
+        }
+      }
+
+      // See if the number of sessions reported by this SINF matches the number of sessions found
+      if (relevant_session) {
+        if (relevant_session->number_tracks == number_tracks)
+          ver_printf(3, "    Matches number of tracks found for session %d\n", sinf_number);
+        else {
+          ver_printf(3, "    Warning: Doesn't match number of tracks found for session %d\n", sinf_number);
+          r = NRG_WARN;
+        }
+      }
+
+      sinf_number++;
     }
     else if (chunk_id == MTYP) {
       /**
       * MTYP (Media Type?) Format:
       *   4 B         unknown
       */
-      uint32_t mystery_int  = fread32u(image_file);
+      image->media_type = fread32u(image_file);
 
-      ver_printf(3, "  MTYP at 0x%X:  Size - %dB, ? - 0x%X\n", chunk_offset, chunk_size, mystery_int);
+      ver_printf(3, "  MTYP at 0x%X:  Size - %dB, Media Type - 0x%X\n", chunk_offset, chunk_size, image->media_type);
     }
     else if (chunk_id == END) {
       ver_printf(3, "  END! at 0x%X\n", chunk_offset);
       break;
     }
     else {
-      fprintf(stderr, "  Unrecognized Chunk ID at ox%X: 0x%X.\n", chunk_offset, chunk_id);
+      fprintf(stderr, "  Unrecognized Chunk ID at 0x%X: 0x%X.\n", chunk_offset, chunk_id);
       r = NRG_WARN;
     }
   }
