@@ -26,13 +26,14 @@ nrg_image *alloc_nrg_image() {
   // Make sure it didn't fail
   if (!r) {
     fprintf(stderr, "Failed to allocate memory for nrg_image structure: %s\n", strerror(errno));
-    exit(EXIT_FAILURE);
+    return NULL;
   }
 
   //Initialize some variables in there and return the pointer
   r->nrg_version = UNPROCESSED;
   r->first_chunk_offset = 0x00;
-  r->sessions = NULL;
+  r->first_session = NULL;
+  r->last_session = NULL;
   r->number_sessions = 0;
 
   return r;
@@ -47,11 +48,11 @@ void free_nrg_image(nrg_image *image) {
 
   // Loop through all the sessions
   nrg_session *s;
-  for (s = image->sessions; s != NULL; ) {
+  for (s = image->first_session; s != NULL; ) {
 
     // Loop through all the tracks in this session
     nrg_track *t;
-    for (t = s->tracks; t != NULL; ) {
+    for (t = s->first_track; t != NULL; ) {
 
       // Get the next track before freeing this one
       nrg_track *next_track = t->next;
@@ -73,6 +74,85 @@ void free_nrg_image(nrg_image *image) {
   free(image);
   image = NULL;
 }
+
+
+// Allocates memory for an nrg_session
+nrg_session *alloc_nrg_session() {
+  // Do the malloc
+  nrg_session *r = malloc(sizeof(nrg_session));
+
+  // Make sure it didn't fail
+  if (!r) {
+    fprintf(stderr, "Failed to allocate memory for nrg_session structure: %s\n", strerror(errno));
+    return NULL;
+  }
+
+  //Initialize some variables in there and return the pointer
+  r->next = NULL;
+  r->first_track = NULL;
+  r->last_track = NULL;
+  r->number_tracks = 0;
+
+  return r;
+}
+
+
+// Allocates memory for an nrg_track
+nrg_track *alloc_nrg_track() {
+  // Do the malloc
+  nrg_track *r = malloc(sizeof(nrg_track));
+
+  // Make sure it didn't fail
+  if (!r) {
+    fprintf(stderr, "Failed to allocate memory for nrg_track structure: %s\n", strerror(errno));
+    return NULL;
+  }
+
+  //Initialize some variables in there and return the pointer
+  r->next = NULL;
+
+  return r;
+}
+
+
+// Adds an nrg_session to an nrg_image
+void add_nrg_session(nrg_image *image, nrg_session *session) {
+  if (!image || !session) {
+    fprintf(stderr, "add_nrg_session got an unallocated nrg_image or nrg_session.\n");
+    return;
+  }
+
+  // If this is the first session going on the image, this session is both the first and last
+  if (image->first_session == NULL) {
+    image->first_session = session;
+    image->last_session = session;
+  }
+  // Otherwise, it goes on the end and is the new last_session
+  else {
+    image->last_session->next = session;
+    image->last_session = session;
+  }
+}
+
+
+void add_nrg_track(nrg_session *session, nrg_track *track) {
+  if (!track || !session) {
+    fprintf(stderr, "add_nrg_track got an unallocated nrg_session or nrg_track.\n");
+    return;
+  }
+
+  // If this is the first track going on the session, this track is both the first and last
+  if (session->first_track == NULL) {
+    session->first_track = track;
+    session->last_track = track;
+  }
+  // Otherwise, it goes on the end and is the new last_track
+  else {
+    session->last_track->next = track;
+    session->last_track = track;
+  }
+}
+
 
 // detects nrg file version and saves to data structure
 int get_nrg_version(FILE *image_file, nrg_image *image) {

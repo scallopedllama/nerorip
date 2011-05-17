@@ -82,7 +82,7 @@ typedef struct {
   struct nrg_session *next;
 
   // Pointer to the front of the list of tracks in this session and the number of them
-  nrg_track *tracks;
+  nrg_track *first_track, *last_track;
   int number_tracks;
 } nrg_session;
 
@@ -100,7 +100,7 @@ typedef struct {
   uint64_t first_chunk_offset;
 
   // Pointer to the list of sessions and number of sessions
-  nrg_session *sessions;
+  nrg_session *first_session, *last_session;
   int number_sessions;
 } nrg_image;
 
@@ -110,8 +110,9 @@ typedef struct {
  * FUNCTIONS
  */
 
+
 /**
- * Allocate memory for a nrg_image struct and return a pointer to it.
+ * Allocate memory for an nrg_image struct and return a pointer to it.
  * @return *nrg_image
  *   A pointer to the properly allocated nrg_image struct
  * @author Joe Balough
@@ -129,6 +130,51 @@ nrg_image *alloc_nrg_image();
  * @author Joe Balough
  */
 void free_nrg_image(nrg_image *image);
+
+
+/**
+ * Allocate memory for an nrg_session struct and return a pointer to it.
+ * @return *nrg_session
+ *   A pointer to the properly allocated nrg_session struct
+ * @author Joe Balough
+ */
+nrg_session *alloc_nrg_session();
+
+
+/**
+ * Allocate memory for an nrg_track struct and return a pointer to it.
+ * @return *nrg_track
+ *   A pointer to the properly allocated nrg_track struct
+ * @author Joe Balough
+ */
+nrg_track *alloc_nrg_track();
+
+/**
+ * Adds an nrg_track to the list in the passed nrg_session.
+ * The track should be allocated before calling.
+ * If session or track is NULL, the function will simply return having done nothing.
+ *
+ * @param nrg_session *session
+ *   The nrg_session to which the track should be added
+ * @param nrg_track *track
+ *   The nrg_track to add
+ * @author Joe Balough
+ */
+void add_nrg_track(nrg_session *session, nrg_track *track);
+
+
+/**
+ * Adds an nrg_session to the list in the passed nrg_image.
+ * The session should be allocated before calling.
+ * If image or session is NULL, the function will simply return having done nothing.
+ *
+ * @param nrg_image *image
+ *   The nrg_image to which the session should be added
+ * @param nrg_session *session
+ *   The nrg_session to add
+ * @author Joe Balough
+ */
+void add_nrg_session(nrg_image *image, nrg_session *session);
 
 
 /**
