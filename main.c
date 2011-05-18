@@ -26,6 +26,13 @@
 #include "util.h"
 #include "nrg.h"
 
+// Defines the 44 byte WAV header for audio tracks
+#define WAV_HEAD = {0x52, 0x49, 0x46, 0x46, 0x24, 0x6D, 0x97, 0x04, 0x57, \
+                    0x41, 0x56, 0x45, 0x66, 0x6D, 0x74, 0x20, 0x10, 0x00, \
+                    0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x44, 0xAC, 0x00, \
+                    0x00, 0x10, 0xB1, 0x02, 0x00, 0x04, 0x00, 0x10, 0x00, \
+                    0x64, 0x61, 0x74, 0x61, 0x00, 0x6D, 0x97, 0x04}
+
 /**
  * Whether only information about the file should be printed
  */
@@ -142,6 +149,52 @@ int main(int argc, char **argv) {
 
   // Print the collected information
   nrg_print(1, image);
+
+  ver_printf(1, "Writing out track data\n");
+  // Try to extract that data
+  unsigned int track = 1;
+  nrg_session *s;
+  for(s = image->first_session; s != NULL; s=s->next) {
+    nrg_track *t;
+    for (t = s->first_track; t!=NULL; t=t->next) {
+
+      // Seek to the track lba
+      fseek(image_file, t->index1, SEEK_SET);
+
+      char buffer[45];
+      sprintf(buffer, "track%02d.bin", track);
+      ver_printf(1, "%s: 00%%", buffer);
+
+      // Open up a file to dump stuff into
+      FILE *tf = fopen(buffer, "wb");
+
+      // Write length bytes
+      unsigned int b;
+      for (b = 0; b < t->length; b += t->sector_size)
+      {
+        ver_printf(1, "\b\b\b%02d%%", (int)( ((float) b / (float) t->length) * 100.0));
+
+        uint8_t *writebuf = malloc(sizeof(uint8_t) * t->sector_size);
+        if (fread(writebuf, sizeof(uint8_t), t->sector_size, image_file) != t->sector_size) {
+          fprintf(stderr, "Error reading track: %s\n", strerror(errno));
+        }
+        if (fwrite(writebuf, sizeof(uint8_t), t->sector_size, tf) != t->sector_size) {
+          fprintf(stderr, "Error writing track: %s\n  Skipping this track.\n", strerror(errno));
+          fclose(tf);
+          free(writebuf);
+          continue;
+        }
+        free(writebuf);
+      }
+
+      ver_printf(1, "\b\b\b100%%\n");
+
+      // Close that file
+      fclose(tf);
+
+      track++;
+    }
+  }
 
 
   // Cloes file and free ram
