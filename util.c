@@ -88,3 +88,10 @@ uint64_t fread64u(FILE* input) {
   return bswap_64(r);
 }
 
+
+size_t fwrite32u(uint32_t value, FILE* output) {
+  return fwrite(&value, sizeof(uint32_t), 1, output);
+}
+size_t fwrite16u(uint16_t value, FILE* output) {
+  return fwrite(&value, sizeof(uint16_t), 1, output);
+}

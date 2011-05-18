@@ -82,4 +82,8 @@ uint16_t fread16u(FILE*);
 uint32_t fread32u(FILE*);
 uint64_t fread64u(FILE*);
 
+
+size_t fwrite16u(uint16_t value, FILE* output);
+size_t fwrite32u(uint32_t value, FILE* output);
+
 #endif

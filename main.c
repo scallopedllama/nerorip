@@ -26,22 +26,21 @@
 #include "util.h"
 #include "nrg.h"
 
-// Defines the 44 byte WAV header for audio tracks
-#define WAV_HEAD = {0x52, 0x49, 0x46, 0x46, 0x24, 0x6D, 0x97, 0x04, 0x57, \
-                    0x41, 0x56, 0x45, 0x66, 0x6D, 0x74, 0x20, 0x10, 0x00, \
-                    0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x44, 0xAC, 0x00, \
-                    0x00, 0x10, 0xB1, 0x02, 0x00, 0x04, 0x00, 0x10, 0x00, \
-                    0x64, 0x61, 0x74, 0x61, 0x00, 0x6D, 0x97, 0x04}
+#define AUD_WAV 0
+#define AUD_RAW 0
+
 
 /**
  * Whether only information about the file should be printed
  */
 static int info_only = 0;
+static int audio_output = AUD_WAV;
 
 void usage(char *argv0) {
   printf("Usage: %s [OPTIONS]... [INPUT FILE] [OUTPUT DIRECTORY]\n", argv0);
   printf("Nerorip takes a nero image file (.nrt extension) as input\n");
   printf("and attempts to extract the track data as either ISO or audio data.\n\n");
+  printf("  -r, --raw\t\tSave audio data as RAW (\"LSB first\" format) instead of a WAV file\n");
   printf("  -i, --info\t\tOnly disply information about the image file, do not rip\n");
   printf("  -v, --verbose\t\tIncrement program verbosity by one tick\n");
   printf("  -q, --quiet\t\tDecrement program verbosity by one tick\n");
@@ -77,6 +76,7 @@ void version(char *argv0) {
 int main(int argc, char **argv) {
   // Configure the long getopt options
   static struct option long_options[] = {
+    {"raw",      no_argument, 0, 'r'},
     {"info",     no_argument, 0, 'i'},
     {"verbose",  no_argument, 0, 'v'},
     {"quiet",    no_argument, 0, 'q'},
@@ -96,6 +96,11 @@ int main(int argc, char **argv) {
       // Quiet
       case 'q':
         dec_verbosity();
+        break;
+      // Raw
+      case 'r':
+        ver_printf(1, "Dumping RAW audio data.\n");
+        audio_output = AUD_RAW;
         break;
       // Info
       case 'i':
@@ -150,6 +155,9 @@ int main(int argc, char **argv) {
   // Print the collected information
   nrg_print(1, image);
 
+  if (info_only)
+    goto quit;
+
   ver_printf(1, "Writing out track data\n");
   // Try to extract that data
   unsigned int track = 1;
@@ -161,12 +169,31 @@ int main(int argc, char **argv) {
       // Seek to the track lba
       fseek(image_file, t->index1, SEEK_SET);
 
-      char buffer[45];
-      sprintf(buffer, "track%02d.bin", track);
+      char buffer[256];
+      sprintf(buffer, "%s/track%02d.bin", output_dir, track);
       ver_printf(1, "%s: 00%%", buffer);
 
       // Open up a file to dump stuff into
       FILE *tf = fopen(buffer, "wb");
+
+      // Add WAV header if the track was audio and that's the audio mode
+      if (audio_output == AUD_WAV) {
+        // Following WAV header format found at https://ccrma.stanford.edu/courses/422/projects/WaveFormat/
+        unsigned int written = fwrite("RIFF", 1, 4, tf);
+        written += fwrite32u(t->length + 36, tf); // Length of data + 36
+        written += fwrite("WAVE", 1, 4, tf);
+        written += fwrite("fmt ", 1, 4, tf);
+        written += fwrite32u(16,     tf);  // PCM
+        written += fwrite16u(1,      tf);  // No Compression
+        written += fwrite16u(2,      tf);  // 2 channels
+        written += fwrite32u(44100,  tf);  // Sample Rate
+        written += fwrite32u(176400, tf);  // Byte Rate
+        written += fwrite16u(4,      tf);  // Block Align
+        written += fwrite16u(16,     tf);  // Bits per sample
+        written += fwrite("data", 1, 4, tf);
+        written += fwrite32u(t->length, tf); // Data length
+      }
+
 
       // Write length bytes
       unsigned int b;
@@ -196,7 +223,7 @@ int main(int argc, char **argv) {
     }
   }
 
-
+quit:
   // Cloes file and free ram
   ver_printf(3, "Cleaning up\n");
   fclose(image_file);
