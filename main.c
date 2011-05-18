@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
       FILE *tf = fopen(buffer, "wb");
 
       // Add WAV header if the track was audio and that's the audio mode
-      if (audio_output == AUD_WAV) {
+      if (audio_output == AUD_WAV && t->track_mode == AUDIO) {
         // Following WAV header format found at https://ccrma.stanford.edu/courses/422/projects/WaveFormat/
         unsigned int written = fwrite("RIFF", 1, 4, tf);
         written += fwrite32u(t->length + 36, tf); // Length of data + 36
