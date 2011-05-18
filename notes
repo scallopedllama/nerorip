@@ -1,0 +1,11 @@
+raw dumps the straight data from the image
+wav just adds a wav header to the data from the image
+aiff, swap, and cda modify the audio data
+  cda just 'swaps' the data
+  aiff prepends an aiff header
+  swap prepends a wav header
+
+
+using the bin option produces the straight data from the image
+the default iso option must convert that data
+having a hard time getting the sizes to match up
