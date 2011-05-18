@@ -1,5 +1,14 @@
 *~
 *.o
 *.nrg
+*.cdi
+*.CDI
+*.NRG
+*.iso
+*.ISO
+*.BIN
+*.bin
+*.cue
+*.CUE
 nerorip
 
