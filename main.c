@@ -40,7 +40,7 @@ void usage(char *argv0) {
   printf("Usage: %s [OPTIONS]... [INPUT FILE] [OUTPUT DIRECTORY]\n", argv0);
   printf("Nerorip takes a nero image file (.nrt extension) as input\n");
   printf("and attempts to extract the track data as either ISO or audio data.\n\n");
-  printf("  -r, --raw\t\tSave audio data as RAW (\"LSB first\" format) instead of a WAV file\n");
+  printf("  -r, --raw\t\tSave audio data as RAW (little endian) instead of a WAV file\n");
   printf("  -i, --info\t\tOnly disply information about the image file, do not rip\n");
   printf("  -v, --verbose\t\tIncrement program verbosity by one tick\n");
   printf("  -q, --quiet\t\tDecrement program verbosity by one tick\n");
