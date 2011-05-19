@@ -47,7 +47,9 @@ static int info_only = 0;
 static int data_output = DAT_ISO;
 
 // An array of strings describing the data output options
-static char data_output_str[3][26] = {"converted ISO/2048", "raw BIN", "converted \"Mac\" ISO/2048"};
+static char data_output_str[3][26] = {"converted ISO/2048", "raw bin", "converted \"Mac\" ISO/2048"};
+// An array of strings with the extension for each of those output types
+static char data_output_ext[3][4] = {"iso", "bin", "iso"};
 
 /**
  * What format the audio tracks should be output as
@@ -61,7 +63,7 @@ static int audio_output = AUD_WAV;
 static int swap_audio_output = 0;
 
 // An array of strings to represent the audio output types
-static char audio_output_str[4][5] = {"WAV", "RAW", "CDA", "AIFF"};
+static char audio_output_str[4][5] = {"wav", "raw", "cda", "aiff"};
 
 void usage(char *argv0) {
   printf("Usage: %s [OPTIONS]... [INPUT FILE] [OUTPUT DIRECTORY]\n", argv0);
@@ -234,7 +236,7 @@ int main(int argc, char **argv) {
   if (info_only)
     goto quit;
 
-  ver_printf(1, "Writing out track data\n");
+  ver_printf(1, "Saving track data:\n");
   // Try to extract that data
   unsigned int track = 1;
   nrg_session *s;
@@ -246,17 +248,23 @@ int main(int argc, char **argv) {
       fseek(image_file, t->index1, SEEK_SET);
 
       char buffer[256];
-      sprintf(buffer, "%s/track%02d.bin", output_dir, track);
-      ver_printf(1, "%s: 00%%", buffer);
+      sprintf(buffer, "%s/track%02d.%s", output_dir, track, (t->track_mode == AUDIO ? audio_output_str[audio_output] : data_output_ext[data_output]));
+      ver_printf(1, "  %s: 00%%", buffer);
 
       // Open up a file to dump stuff into
       FILE *tf = fopen(buffer, "wb");
 
-      // Add WAV header if the track was audio and that's the audio mode
-      if (audio_output == AUD_WAV && t->track_mode == AUDIO) {
-        fwrite_wav_header(tf, t->length);
+      // Add the proper header if the track is AUDIO
+      if (t->track_mode == AUDIO) {
+        switch (audio_output) {
+          case AUD_WAV:
+            fwrite_wav_header(tf, t->length);
+            break;
+          case AUD_AIFF:
+            fwrite_aiff_header(tf, t->length / t->sector_size);
+            break;
+        }
       }
-
 
       // Write length bytes
       unsigned int b;
