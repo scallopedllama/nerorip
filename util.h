@@ -86,4 +86,15 @@ uint64_t fread64u(FILE*);
 size_t fwrite16u(uint16_t value, FILE* output);
 size_t fwrite32u(uint32_t value, FILE* output);
 
+/**
+ * Writes a wav header to the passed file
+ *
+ * @param FILE* output_file
+ *   The file to which the header should be written
+ * @param unsigned int length
+ *   The length of the audio data that will be in the file
+ * @author Joe Balough
+ */
+void fwrite_wav_header(FILE *output_file, unsigned int length);
+
 #endif

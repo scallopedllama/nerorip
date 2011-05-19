@@ -40,7 +40,19 @@ void usage(char *argv0) {
   printf("Usage: %s [OPTIONS]... [INPUT FILE] [OUTPUT DIRECTORY]\n", argv0);
   printf("Nerorip takes a nero image file (.nrt extension) as input\n");
   printf("and attempts to extract the track data as either ISO or audio data.\n\n");
-  printf("  -r, --raw\t\tSave audio data as RAW (little endian) instead of a WAV file\n");
+  printf("  Audio track saving options:\n");
+  printf("    -r, --raw\t\tSave audio data as little endian raw data\n");
+  printf("    -c, --cda\t\tSwitches data to big endian and saves as RAW\n");
+  printf("    -a, --aiff\t\tSwitches data to big endian and saves as an AIFF file\n");
+  printf("    -s, --swap\t\tChanges data between big and little endian (only affects --aiff and --cda)\n");
+  printf("  If omitted, Audio tracks will be exported as WAV files\n\n");
+
+  printf("  Data track saving options:\n");
+  printf("    -b, --bin\t\tExport data directly out of image file\n");
+  printf("    -m, --mac\t\tConvert data to \"Mac\" ISO/2056 format\n");
+  printf("  If omitted, Data tracks will be converted to ISO/2048 format\n\n");
+
+  printf("  General options:\n");
   printf("  -i, --info\t\tOnly disply information about the image file, do not rip\n");
   printf("  -v, --verbose\t\tIncrement program verbosity by one tick\n");
   printf("  -q, --quiet\t\tDecrement program verbosity by one tick\n");
@@ -50,8 +62,8 @@ void usage(char *argv0) {
   printf("If output directory is omitted, image data is put in the same directory as the input file.\n\n");
 
   printf("For each track found in the image, nerorip will output the following:\n");
-  printf("  one iso file named \"data.sSStTT.iso\" if the track is data and\n");
-  printf("  one wav file named \"audio.sSStTT.wav\" if the track is audio\n");
+  printf("  one iso file named \"data.sSStTT.[iso/bin]\" if the track is data and\n");
+  printf("  one wav file named \"audio.sSStTT.[wav/bin/cda/aiff]\" if the track is audio\n");
   printf("where SS is the session number and TT is the track number.\n");
   printf("Also, for each session in the image, nerorip will output one cue file.\n\n");
 
@@ -178,20 +190,7 @@ int main(int argc, char **argv) {
 
       // Add WAV header if the track was audio and that's the audio mode
       if (audio_output == AUD_WAV && t->track_mode == AUDIO) {
-        // Following WAV header format found at https://ccrma.stanford.edu/courses/422/projects/WaveFormat/
-        unsigned int written = fwrite("RIFF", 1, 4, tf);
-        written += fwrite32u(t->length + 36, tf); // Length of data + 36
-        written += fwrite("WAVE", 1, 4, tf);
-        written += fwrite("fmt ", 1, 4, tf);
-        written += fwrite32u(16,     tf);  // PCM
-        written += fwrite16u(1,      tf);  // No Compression
-        written += fwrite16u(2,      tf);  // 2 channels
-        written += fwrite32u(44100,  tf);  // Sample Rate
-        written += fwrite32u(176400, tf);  // Byte Rate
-        written += fwrite16u(4,      tf);  // Block Align
-        written += fwrite16u(16,     tf);  // Bits per sample
-        written += fwrite("data", 1, 4, tf);
-        written += fwrite32u(t->length, tf); // Data length
+        fwrite_wav_header(tf, t->length);
       }
 
 
