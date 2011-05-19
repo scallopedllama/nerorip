@@ -150,13 +150,18 @@ int main(int argc, char **argv) {
       case 's': swap_audio_output = 1; break;
 
       /*
-       * General options
+       * Data track options
        */
+
       // Bin
       case 'b': data_output = DAT_BIN; break;
       // Mac
       case 'm': data_output = DAT_MAC; break;
 
+
+      /*
+       * General options
+       */
 
       // Verbose
       case 'v': inc_verbosity(); break;
