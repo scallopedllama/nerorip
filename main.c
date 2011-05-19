@@ -197,7 +197,7 @@ int main(int argc, char **argv) {
 
   else {
     // Audio track information
-    ver_printf(1, "Saving audio tracks as %s %s files", (swap_audio_output ? "swapped" : "non-swapped"), audio_output_str[audio_output]);
+    ver_printf(1, "Saving audio tracks as %s %s files\n", (swap_audio_output ? "swapped" : "non-swapped"), audio_output_str[audio_output]);
 
     // Data track information
     ver_printf(1, "Saving data tracks as %s files.\n", data_output_str[data_output]);
@@ -286,8 +286,41 @@ int main(int argc, char **argv) {
         if (swap_audio_output && t->track_mode == AUDIO)
           swap_buffer(buffer, t->sector_size);
 
-        // Write one sector of data
-        if (fwrite(buffer, sizeof(uint8_t), t->sector_size, tf) != t->sector_size) {
+        // If the track isn't audio and a conversion is to be done, figure out how long the header is
+        unsigned int header_length = 0;
+        unsigned int write_length = t->sector_size;
+        if (t->track_mode != AUDIO && data_output != DAT_BIN) {
+
+          // The header length depends on the track mode
+          if (t->track_mode == MODE2) {
+            switch (t->sector_size) {
+              case 2352: header_length = 24; break;
+              case 2336: header_length = 8;  break;
+              default:   header_length = 0;  break;
+            }
+          }
+          else {
+            switch (t->sector_size) {
+              case 2352: header_length = 16; break;
+              default:   header_length = 0;  break;
+            }
+          }
+
+          // Since we're converting to ISO/2048, the sector length is now 2048
+          write_length = 2048;
+        }
+        // If converting to the "Mac" iso type, Write that header
+        if (data_output == DAT_MAC) {
+          if (fwrite("\0\0\x08\0\0\0\x08\0", sizeof(uint8_t), 8, tf) != 8) {
+            fprintf(stderr, "Error writing Mac header to track: %s\n Skipping this track.\n", strerror(errno));
+            fclose(tf);
+            free(buffer);
+            continue;
+          }
+        }
+
+        // Write one sector of data skipping the header (if converting)
+        if (fwrite(buffer + header_length, sizeof(uint8_t), write_length, tf) != write_length) {
           fprintf(stderr, "Error writing track: %s\n  Skipping this track.\n", strerror(errno));
           fclose(tf);
           free(buffer);
