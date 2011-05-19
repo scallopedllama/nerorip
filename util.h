@@ -88,6 +88,7 @@ size_t fwrite32u(uint32_t value, FILE* output);
 
 /**
  * Writes a wav header to the passed file
+ * Based on the file specification found at https://ccrma.stanford.edu/courses/422/projects/WaveFormat/
  *
  * @param FILE* output_file
  *   The file to which the header should be written
@@ -96,5 +97,17 @@ size_t fwrite32u(uint32_t value, FILE* output);
  * @author Joe Balough
  */
 void fwrite_wav_header(FILE *output_file, unsigned int length);
+
+/**
+ * Writes an aiff header to the passed file
+ * Based on the writeaiffheader() function in the cidrip project.
+ *
+ * @param FILE* output_file
+ *   The file to which the header should be written
+ * @param unsigned int length
+ *   The length of the audio data that will be in the file in sectors
+ * @author Joe Balough
+ */
+void fwrite_aiff_header(FILE *output_file, unsigned int sectors_length);
 
 #endif

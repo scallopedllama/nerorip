@@ -118,43 +118,29 @@ void fwrite_wav_header(FILE *tf, unsigned int length)
     fprintf(stderr, "Error writing WAV header: %s\n", strerror(errno));
 }
 
-/*
-void writeaiffheader(FILE *fdest, long track_length)
+
+void fwrite_aiff_header(FILE *tf, unsigned int length)
 {
-  unsigned long  source_length, total_length;
-  unsigned char  buf[4];
-  unsigned long  aCommSize = 18;
-  unsigned short aChannels = 2;
-  unsigned long  aNumFrames;
-  unsigned short aBitsPerSample = 16;
-  unsigned long  aSampleRate = 44100;
-  unsigned long  aSsndSize;
-  unsigned long  aOffset = 0;
-  unsigned long  aBlockSize = 0;
+  // Calculate some useful values
+  unsigned long int source_length = length * 2352;
+  uint32_t total_length  = source_length + 8 + 18 + 8 + 12; // COMM + SSND
+  uint32_t number_frames = source_length / 4;
+  uint32_t audio_size = source_length + 8;
+  uint8_t sample_rate[10] = {0x40, 0x0E, 0xAC, 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
+  unsigned int written = 0;
+  written += fwrite("FORM", 1, 4, tf);
+  written += fwrite32u(total_length, tf);
+  written += fwrite   ("AIFF", 1, 4, tf);
+  written += fwrite   ("COMM", 1, 4, tf);
+  written += fwrite32u(18, tf);           // Comm size
+  written += fwrite16u(2, tf);            // 2 channels
+  written += fwrite32u(number_frames, tf);
+  written += fwrite16u(16, tf);           // Bits per sample
+  written += fwrite   (sample_rate, 1, 10, tf);
 
-  source_length = track_length*2352;
-  total_length = source_length + 8 + 18 + 8 + 12; // COMM + SSND
-  aNumFrames = source_length/4;
-  aSsndSize = source_length + 8;
-
-  fwrite("FORM", 4, 1, fdest);
-
-  fwrite(&total_length, 4, 1, fdest);
-
-  fwrite("AIFF", 4, 1, fdest);
-  fwrite("COMM", 4, 1, fdest);
-
-  fwrite(&aCommSize, 4, 1, fdest);
-  fwrite(&aChannels, 2, 1, fdest);
-  fwrite(&aNumFrames, 4, 1, fdest);
-  fwrite(&aBitsPerSample, 2, 1, fdest);
-
-  write_ieee_extended(fdest, (double)aSampleRate);
-
-  fwrite("SSND", 4, 1, fdest);
-
-  fwrite(&aSsndSize, 4, 1, fdest);
-  fwrite(&aOffset, 4, 1, fdest);
-  fwrite(&aBlockSize, 4, 1, fdest);
-}*/
+  written += fwrite("SSND", 1, 4, tf);
+  written += fwrite32u(audio_size, tf);
+  written += fwrite32u(0, tf);           // Audio offset
+  written += fwrite32u(0, tf);           // Audio block size
+}
