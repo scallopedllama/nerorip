@@ -26,15 +26,42 @@
 #include "util.h"
 #include "nrg.h"
 
-#define AUD_WAV 0
-#define AUD_RAW 0
+#define AUD_WAV  0
+#define AUD_RAW  1
+#define AUD_CDA  2
+#define AUD_AIFF 3
 
+#define DAT_ISO 0
+#define DAT_BIN 1
+#define DAT_MAC 2
 
 /**
  * Whether only information about the file should be printed
  */
 static int info_only = 0;
+
+/**
+ * What format the data tracks should be saved as
+ * Should be DAT_ISO, DAT_BIN, or DAT_MAC
+ */
+static int data_output = DAT_ISO;
+
+// An array of strings describing the data output options
+static char data_output_str[3][26] = {"converted ISO/2048", "raw BIN", "converted \"Mac\" ISO/2048"};
+
+/**
+ * What format the audio tracks should be output as
+ * Should be AUD_WAV, AUD_RAW, AUD_CDA, or AUD_AIFF
+ */
 static int audio_output = AUD_WAV;
+
+/**
+ * Whether or not audio tracks should be swapped
+ */
+static int swap_audio_output = 0;
+
+// An array of strings to represent the audio output types
+static char audio_output_str[4][5] = {"WAV", "RAW", "CDA", "AIFF"};
 
 void usage(char *argv0) {
   printf("Usage: %s [OPTIONS]... [INPUT FILE] [OUTPUT DIRECTORY]\n", argv0);
@@ -88,7 +115,15 @@ void version(char *argv0) {
 int main(int argc, char **argv) {
   // Configure the long getopt options
   static struct option long_options[] = {
+    // Audio
     {"raw",      no_argument, 0, 'r'},
+    {"cda",      no_argument, 0, 'c'},
+    {"aiff",     no_argument, 0, 'a'},
+    {"swap",     no_argument, 0, 's'},
+    // Data
+    {"bin",      no_argument, 0, 'b'},
+    {"mac",      no_argument, 0, 'm'},
+    // General
     {"info",     no_argument, 0, 'i'},
     {"verbose",  no_argument, 0, 'v'},
     {"quiet",    no_argument, 0, 'q'},
@@ -99,40 +134,64 @@ int main(int argc, char **argv) {
 
   // Loop through all the passed options
   int c;
-  while ((c = getopt_long (argc, argv, "ivqhV", long_options, NULL)) != -1) {
+  while ((c = getopt_long (argc, argv, "rcasbmivqhV", long_options, NULL)) != -1) {
     switch (c) {
-      // Verbose
-      case 'v':
-        inc_verbosity();
-        break;
-      // Quiet
-      case 'q':
-        dec_verbosity();
-        break;
+      /*
+       * Audio track options
+       */
+
       // Raw
-      case 'r':
-        ver_printf(1, "Dumping RAW audio data.\n");
-        audio_output = AUD_RAW;
-        break;
+      case 'r': audio_output = AUD_RAW; break;
+      // Cda
+      case 'c': audio_output = AUD_CDA; break;
+      // Aiff
+      case 'a': audio_output = AUD_AIFF; break;
+      // Swap
+      case 's': swap_audio_output = 1; break;
+
+      /*
+       * General options
+       */
+      // Bin
+      case 'b': data_output = DAT_BIN; break;
+      // Mac
+      case 'm': data_output = DAT_MAC; break;
+
+
+      // Verbose
+      case 'v': inc_verbosity(); break;
+      // Quiet
+      case 'q': dec_verbosity(); break;
       // Info
-      case 'i':
-        ver_printf(1, "Will only print information.\n");
-        info_only = 1;
-        break;
+      case 'i': info_only = 1; break;
       // Help
-      case 'h':
-        usage(argv[0]);
-        break;
+      case 'h': usage(argv[0]); break;
       // Version
-      case 'V':
-        version(argv[0]);
-        break;
-      default:
-        break;
+      case 'V': version(argv[0]); break;
+      default: break;
     }
   }
   // Print simple welcome message
   ver_printf(1, "neorip v%s\n", VERSION);
+
+  // Note any enabled options
+
+  // Note if info_only is on. If it is, that's the only option to tell the user about.
+  if (info_only)
+    ver_printf(1, "Will only print disc image information.\n");
+
+  else {
+    // Check use of swap
+    if (audio_output == AUD_WAV && swap_audio_output) {
+      ver_printf(1, "Note: --swap option used but makes no sense in WAV output. Ignoring.\n");
+      swap_audio_output = 0;
+    }
+    // Audio track information
+    ver_printf(1, "Saving audio tracks as %s%s files.\n", (swap_audio_output ? "swapped " : ""), audio_output_str[audio_output]);
+
+    // Data track information
+    ver_printf(1, "Saving data tracks as %s files.\n", data_output_str[data_output]);
+  }
 
   // Now that all the getopt options have been parsed, that only leaves the input file and output directory.
   // Those two values should be in argv[optind] and argv[optind + 1]
