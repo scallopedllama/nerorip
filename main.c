@@ -283,7 +283,7 @@ int main(int argc, char **argv) {
         }
 
         // Swap buffer if necessary
-        if (swap_audio_output)
+        if (swap_audio_output && t->track_mode == AUDIO)
           swap_buffer(buffer, t->sector_size);
 
         // Write one sector of data
