@@ -248,7 +248,7 @@ int main(int argc, char **argv) {
     for (t = s->first_track; t!=NULL; t=t->next) {
 
       // Seek to the track lba
-      fseek(image_file, t->index1, SEEK_SET);
+      fseek(image_file, t->track_offset, SEEK_SET);
 
       char filename[256];
       sprintf(filename, "%s/track%02d.%s", output_dir, track, (t->track_mode == AUDIO ? audio_output_str[audio_output] : data_output_ext[data_output]));

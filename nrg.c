@@ -348,10 +348,10 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
         // Read track data
         track->sector_size = fread32u(image_file);
         uint32_t mode       = fread32u(image_file);
-        track->index0      = (chunk_id == DAOI) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
-        track->index1      = (chunk_id == DAOI) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
+        track->pretrack_offset      = (chunk_id == DAOI) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
+        track->track_offset      = (chunk_id == DAOI) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
         track->next_offset = (chunk_id == DAOI) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
-        track->length = track->next_offset - track->index1;
+        track->length = track->next_offset - track->track_offset;
 
         // Assert that the mode read here is the same as that read in CUES / CUEX
         if (mode == DAO_MODE2)
@@ -359,7 +359,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
         else if (mode == DAO_AUDIO)
           assert(track->track_mode == AUDIO);
 
-        ver_printf(3, "      Track %d: Type - %s/%d, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other")), track->sector_size, track->index0, track->index1, track->next_offset);
+        ver_printf(3, "      Track %d: Type - %s/%d, pretrack_offset start - 0x%X, track_offset start - 0x%X, Next offset - 0x%X\n", i, (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other")), track->sector_size, track->pretrack_offset, track->track_offset, track->next_offset);
       }
 
       // Update number of tracks in the image
@@ -395,7 +395,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
         add_nrg_track(session, track);
 
         // Read track data
-        track->index1     = (chunk_id == ETNF) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
+        track->track_offset     = (chunk_id == ETNF) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
         track->length     = (chunk_id == ETNF) ? (uint64_t) fread32u(image_file) : fread64u(image_file);
         track->track_mode = fread32u(image_file);
         track->track_lba  = fread32u(image_file);
@@ -421,7 +421,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
         track->pretrack_mode = track->track_mode;
         assert( ((chunk_id == ETNF) ? fread32u(image_file) : fread64u(image_file)) == 0x00);
 
-        ver_printf(3, "    Track Offset - 0x%X, Track Length - %d B, Type - %s/%d, Start LBA - 0x%X\n",  track->index1, track->length, (track->track_mode == MODE2 ? "Mode2" : (track->track_mode == AUDIO ? "Audio" : "Unknown")), track->sector_size, track->track_lba);
+        ver_printf(3, "    Track Offset - 0x%X, Track Length - %d B, Type - %s/%d, Start LBA - 0x%X\n",  track->track_offset, track->length, (track->track_mode == MODE2 ? "Mode2" : (track->track_mode == AUDIO ? "Audio" : "Unknown")), track->sector_size, track->track_lba);
       }
 
       // Update number of tracks in the image
@@ -529,9 +529,9 @@ void nrg_print(int ver, nrg_image *image) {
     for (track = session->first_track; track != NULL; track = track->next, t++) {
       ver_printf(ver, "    Track: %d\tType: %s/%d\tSize: %d\t", t, (track->track_mode == MODE2 ? "Mode2" : (track->track_mode == AUDIO ? "Audio" : "Unknown")), track->sector_size, track->length / track->sector_size);
       if (session->burn_mode == TAO)
-        ver_printf(ver, "Offset: 0x%X\tLBA:%d\n", track->index1, track->track_lba);
+        ver_printf(ver, "Offset: 0x%X\tLBA:%d\n", track->track_offset, track->track_lba);
       else
-        ver_printf(ver, "Pretrack offset: 0x%X\tPretrack LBA: %d\tTrack Offset: 0x%X\tTrack LBA: %d\n", track->index0, track->pretrack_lba, track->index1, track->track_lba);
+        ver_printf(ver, "Pretrack offset: 0x%X\tPretrack LBA: %d\tTrack Offset: 0x%X\tTrack LBA: %d\n", track->pretrack_offset, track->pretrack_lba, track->track_offset, track->track_lba);
     }
 
     ver_printf(ver, "\n");

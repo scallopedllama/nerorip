@@ -92,11 +92,12 @@ typedef struct {
   uint32_t pretrack_lba;
   uint32_t track_lba;
 
+  // The offset in the image file where the pretrack and track data can be found.
+  uint64_t pretrack_offset;
+  uint64_t track_offset;
+
   // Sector size used by this track
   uint32_t sector_size;
-
-  // The offset in the image file where index 0 and 1 track data can be found.
-  uint64_t index0, index1;
   // Where index 1 track data ends
   uint64_t next_offset;
 
