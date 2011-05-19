@@ -156,7 +156,6 @@ int main(int argc, char **argv) {
         break;
       // Swap
       case 's':
-        swap_audio_output = 1;
         swap_audio_output = !swap_audio_output;
         break;
 
@@ -197,11 +196,6 @@ int main(int argc, char **argv) {
     ver_printf(1, "Will only print disc image information.\n");
 
   else {
-    // Check use of swap
-    if (audio_output == AUD_WAV && swap_audio_output) {
-      ver_printf(1, "Note: --swap option used but makes no sense in WAV output. Ignoring.\n");
-      swap_audio_output = 0;
-    }
     // Audio track information
     ver_printf(1, "Saving audio tracks as %s %s files", (swap_audio_output ? "swapped" : "non-swapped"), audio_output_str[audio_output]);
 
