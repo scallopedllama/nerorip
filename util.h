@@ -106,8 +106,21 @@ void fwrite_wav_header(FILE *output_file, unsigned int length);
  *   The file to which the header should be written
  * @param unsigned int length
  *   The length of the audio data that will be in the file in sectors
- * @author Joe Balough
+ * @author Joe Balough, DeXT/Lawrence Williams
  */
 void fwrite_aiff_header(FILE *output_file, unsigned int sectors_length);
+
+/**
+ * "Swaps" the data passed in the buffer
+ * Essentially, it takes the first two bytes, swaps them,
+ * then goes to the next two bytes and repeats until done with the buffer.
+ *
+ * @param uint8_t *buffer
+ *   The buffer of data to swap
+ * @param unsigned int length
+ *   The length of the buffer to swap
+ * @author Joe Balough
+ */
+void swap_buffer(uint8_t *buffer, unsigned int length);
 
 #endif

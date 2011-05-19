@@ -144,3 +144,14 @@ void fwrite_aiff_header(FILE *tf, unsigned int length)
   written += fwrite32u(0, tf);           // Audio offset
   written += fwrite32u(0, tf);           // Audio block size
 }
+
+
+// "Swaps" the data in the buffer
+void swap_buffer(uint8_t *buffer, unsigned int length) {
+  unsigned int i;
+  for (i = 0; i < length; i += 2) {
+    uint8_t t= buffer[i];
+    buffer[i] = buffer[i + 1];
+    buffer[i + 1] = t;
+  }
+}

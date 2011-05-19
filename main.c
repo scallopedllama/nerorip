@@ -145,11 +145,20 @@ int main(int argc, char **argv) {
       // Raw
       case 'r': audio_output = AUD_RAW; break;
       // Cda
-      case 'c': audio_output = AUD_CDA; break;
+      case 'c':
+        audio_output = AUD_CDA;
+        swap_audio_output = !swap_audio_output;
+        break;
       // Aiff
-      case 'a': audio_output = AUD_AIFF; break;
+      case 'a':
+        audio_output = AUD_AIFF;
+        swap_audio_output = !swap_audio_output;
+        break;
       // Swap
-      case 's': swap_audio_output = 1; break;
+      case 's':
+        swap_audio_output = 1;
+        swap_audio_output = !swap_audio_output;
+        break;
 
       /*
        * Data track options
@@ -194,7 +203,7 @@ int main(int argc, char **argv) {
       swap_audio_output = 0;
     }
     // Audio track information
-    ver_printf(1, "Saving audio tracks as %s%s files.\n", (swap_audio_output ? "swapped " : ""), audio_output_str[audio_output]);
+    ver_printf(1, "Saving audio tracks as %s %s files", (swap_audio_output ? "swapped" : "non-swapped"), audio_output_str[audio_output]);
 
     // Data track information
     ver_printf(1, "Saving data tracks as %s files.\n", data_output_str[data_output]);
@@ -247,12 +256,12 @@ int main(int argc, char **argv) {
       // Seek to the track lba
       fseek(image_file, t->index1, SEEK_SET);
 
-      char buffer[256];
-      sprintf(buffer, "%s/track%02d.%s", output_dir, track, (t->track_mode == AUDIO ? audio_output_str[audio_output] : data_output_ext[data_output]));
-      ver_printf(1, "  %s: 00%%", buffer);
+      char filename[256];
+      sprintf(filename, "%s/track%02d.%s", output_dir, track, (t->track_mode == AUDIO ? audio_output_str[audio_output] : data_output_ext[data_output]));
+      ver_printf(1, "  %s: 00%%", filename);
 
       // Open up a file to dump stuff into
-      FILE *tf = fopen(buffer, "wb");
+      FILE *tf = fopen(filename, "wb");
 
       // Add the proper header if the track is AUDIO
       if (t->track_mode == AUDIO) {
@@ -270,19 +279,29 @@ int main(int argc, char **argv) {
       unsigned int b;
       for (b = 0; b < t->length; b += t->sector_size)
       {
+        // Update status
         ver_printf(1, "\b\b\b%02d%%", (int)( ((float) b / (float) t->length) * 100.0));
 
-        uint8_t *writebuf = malloc(sizeof(uint8_t) * t->sector_size);
-        if (fread(writebuf, sizeof(uint8_t), t->sector_size, image_file) != t->sector_size) {
+        // Read one sector of data
+        uint8_t *buffer = malloc(sizeof(uint8_t) * t->sector_size);
+        if (fread(buffer, sizeof(uint8_t), t->sector_size, image_file) != t->sector_size) {
           fprintf(stderr, "Error reading track: %s\n", strerror(errno));
         }
-        if (fwrite(writebuf, sizeof(uint8_t), t->sector_size, tf) != t->sector_size) {
+
+        // Swap buffer if necessary
+        if (swap_audio_output)
+          swap_buffer(buffer, t->sector_size);
+
+        // Write one sector of data
+        if (fwrite(buffer, sizeof(uint8_t), t->sector_size, tf) != t->sector_size) {
           fprintf(stderr, "Error writing track: %s\n  Skipping this track.\n", strerror(errno));
           fclose(tf);
-          free(writebuf);
+          free(buffer);
           continue;
         }
-        free(writebuf);
+
+        // Clean up buffer
+        free(buffer);
       }
 
       ver_printf(1, "\b\b\b100%%\n");
