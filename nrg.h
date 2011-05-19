@@ -141,7 +141,7 @@ typedef struct {
 
 
 /**
- * Nero image track struct
+ * Nero image struct
  *
  * Manages all data relevant to the nero image.
  *
@@ -162,6 +162,8 @@ typedef struct {
   int nrg_version;
   // Value from the MTYP chunk (0x0 if not set)
   uint32_t media_type;
+  // Total number of tracks in this image
+  unsigned int number_tracks;
 
 } nrg_image;
 

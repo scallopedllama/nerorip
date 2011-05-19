@@ -35,6 +35,7 @@ nrg_image *alloc_nrg_image() {
   r->first_session = NULL;
   r->last_session = NULL;
   r->number_sessions = 0;
+  r->number_tracks = 0;
 
   return r;
 }
@@ -181,7 +182,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
   // If it wasn't either of the above, it must not be a nero image.
   else {
     image->nrg_version = NOT_NRG;
-    ver_printf(3, "  File does not appear to be a Nero 5.5 image\n");
+    ver_printf(3, "  File does not appear to be a Nero image\n");
   }
 
   ver_printf(3, "Seeking to first chunk offset\n");
@@ -360,6 +361,9 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
 
         ver_printf(3, "      Track %d: Type - %s/%d, index0 start - 0x%X, index1 start - 0x%X, Next offset - 0x%X\n", i, (mode == 0x03000001 ? "Mode2" : (mode == 0x07000001 ? "Audio" : "Other")), track->sector_size, track->index0, track->index1, track->next_offset);
       }
+
+      // Update number of tracks in the image
+      image->number_tracks += session->number_tracks;
     }
     else if (chunk_id == ETNF || chunk_id == ETN2) {
       /**
@@ -419,6 +423,9 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
 
         ver_printf(3, "    Track Offset - 0x%X, Track Length - %d B, Type - %s/%d, Start LBA - 0x%X\n",  track->index1, track->length, (track->track_mode == MODE2 ? "Mode2" : (track->track_mode == AUDIO ? "Audio" : "Unknown")), track->sector_size, track->track_lba);
       }
+
+      // Update number of tracks in the image
+      image->number_tracks += session->number_tracks;
     }
     else if (chunk_id == CDTX) {
       /**
