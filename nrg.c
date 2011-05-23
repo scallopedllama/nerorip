@@ -527,11 +527,11 @@ void nrg_print(int ver, nrg_image *image) {
     // All tracks in this session
     nrg_track *track;
     for (track = session->first_track; track != NULL; track = track->next, t++) {
-      ver_printf(ver, "    Track: %d\tType: %s/%d\tSize: %d\t", t, (track->track_mode == MODE2 ? "Mode2" : (track->track_mode == AUDIO ? "Audio" : "Unknown")), track->sector_size, track->length / track->sector_size);
+      ver_printf(ver, "    Track: %d\tType: %s/%d\tSize: %6d\t", t, (track->track_mode == MODE2 ? "Mode2" : (track->track_mode == AUDIO ? "Audio" : "Unknown")), track->sector_size, track->length / track->sector_size);
       if (session->burn_mode == TAO)
-        ver_printf(ver, "Offset: 0x%X\tLBA:%d\n", track->track_offset, track->track_lba);
+        ver_printf(ver, "Offset: 0x%06X\tLBA:%6d\n", track->track_offset, track->track_lba);
       else
-        ver_printf(ver, "Pretrack offset: 0x%X\tPretrack LBA: %d\tTrack Offset: 0x%X\tTrack LBA: %d\n", track->pretrack_offset, track->pretrack_lba, track->track_offset, track->track_lba);
+        ver_printf(ver, "Pretrack offset: 0x%06X\tPretrack LBA: %6d\tTrack Offset: 0x%06X\tTrack LBA: %6d\n", track->pretrack_offset, track->pretrack_lba, track->track_offset, track->track_lba);
     }
 
     ver_printf(ver, "\n");
