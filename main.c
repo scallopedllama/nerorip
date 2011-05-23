@@ -66,6 +66,7 @@ static int swap_audio_output = 0;
 static char audio_output_str[4][5] = {"wav", "raw", "cda", "aiff"};
 
 void usage(char *argv0) {
+  // Used letters: a b c h i f m p q r s t T v
   printf("Usage: %s [OPTIONS]... [INPUT FILE] [OUTPUT DIRECTORY]\n", argv0);
   printf("Nerorip takes a nero image file (.nrt extension) as input\n");
   printf("and attempts to extract the track data as either ISO or audio data.\n\n");
@@ -80,6 +81,15 @@ void usage(char *argv0) {
   printf("    -b, --bin\t\tExport data directly out of image file\n");
   printf("    -m, --mac\t\tConvert data to \"Mac\" ISO/2056 format\n");
   printf("  If omitted, Data tracks will be converted to ISO/2048 format\n\n");
+
+  printf("  Data track trimming options:\n");
+  printf("    -t, --trim\t\tTrim 2 sectors from the end of the first track\n");
+  printf("    -T, --trimall\t\tTrim 2 sectors from the end of all tracks\n");
+  printf("    -f, --full\t\tDo not cut any sectors from any tracks\n");
+  printf("    -p, --pregap\t\tAppend track's pregap data to the end of the previous track\n");
+  printf("  --trim and --trimall can be combined, resulting in 4 sectors being trimmed from the first track\n");
+  printf("  If omitted, Tracks will be trimmed automatically to ensure they will fit on the disc when burned\n");
+  printf("  See readme for more information\n\n");
 
   printf("  General options:\n");
   printf("  -i, --info\t\tOnly disply information about the image file, do not rip\n");
@@ -125,6 +135,11 @@ int main(int argc, char **argv) {
     // Data
     {"bin",      no_argument, 0, 'b'},
     {"mac",      no_argument, 0, 'm'},
+    // Trim
+    {"trim",      no_argument, 0, 't'},
+    {"trimall",   no_argument, 0, 'T'},
+    {"full",      no_argument, 0, 'f'},
+    {"pregap",    no_argument, 0, 'p'},
     // General
     {"info",     no_argument, 0, 'i'},
     {"verbose",  no_argument, 0, 'v'},
@@ -136,7 +151,7 @@ int main(int argc, char **argv) {
 
   // Loop through all the passed options
   int c;
-  while ((c = getopt_long (argc, argv, "rcasbmivqhV", long_options, NULL)) != -1) {
+  while ((c = getopt_long (argc, argv, "rcasbmtTfpivqhV", long_options, NULL)) != -1) {
     switch (c) {
       /*
        * Audio track options
