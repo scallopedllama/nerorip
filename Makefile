@@ -1,6 +1,6 @@
-all: neroripper
+all: nerorip
 
-neroripper: main.o nrg.o util.o
+nerorip: main.o nrg.o util.o
 	cc -Wall -Wextra -o nerorip main.o nrg.o util.o
 
 main.o: main.c
@@ -14,3 +14,6 @@ util.o: util.c
 
 clean:
 	rm -f *.o nerorip
+
+install: all
+	cp -f nerorip ${DESTDIR}/usr/bin/
