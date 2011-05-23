@@ -300,7 +300,7 @@ int main(int argc, char **argv) {
       fseek(image_file, t->track_offset, SEEK_SET);
 
       char filename[256];
-      sprintf(filename, "%s/track%02d.%s", output_dir, track, (t->track_mode == AUDIO ? audio_output_str[audio_output] : data_output_ext[data_output]));
+      sprintf(filename, "%s/%s%02d.%s", output_dir, (t->track_mode == AUDIO ? "taudio" : "tdata"), track, (t->track_mode == AUDIO ? audio_output_str[audio_output] : data_output_ext[data_output]));
       ver_printf(1, "  %s: 00%%", filename);
 
       // Open up a file to dump stuff into
