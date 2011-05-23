@@ -108,8 +108,7 @@ void usage(char *argv0) {
   printf("    -f, --full\t\tDo not cut any sectors from any tracks\n");
   printf("    -p, --pregap\t\tAppend track's pregap data to the end of the previous track\n");
   printf("  --trim and --trimall can be combined, resulting in 4 sectors being trimmed from the first track\n");
-  printf("  If omitted, Tracks will be trimmed automatically to ensure they will fit on the disc when burned\n");
-  printf("  See readme for more information\n\n");
+  printf("  If omitted, only the first track will have 2 sectors trimmed. See readme for more information\n\n");
 
   printf("  General options:\n");
   printf("  -i, --info\t\tOnly disply information about the image file, do not rip\n");
@@ -169,6 +168,9 @@ int main(int argc, char **argv) {
     {0, 0, 0, 0}
   };
 
+  // If any trim options are applied, the default falls back to TRIM_NONE
+  int new_trim_tracks = TRIM_NONE;
+
   // Loop through all the passed options
   int c;
   while ((c = getopt_long (argc, argv, "rcasbmtTfpivqhV", long_options, NULL)) != -1) {
@@ -209,11 +211,11 @@ int main(int argc, char **argv) {
 
       // Since trim and trimall can be used together, they need to be OR'd on
       // trim
-      case 't': trim_tracks  |= TRIM_FIRST; break;
+      case 't': new_trim_tracks  |= TRIM_FIRST; break;
       // trimall
-      case 'T': trim_tracks  |= TRIM_ALL; break;
+      case 'T': new_trim_tracks  |= TRIM_ALL; break;
       // full
-      case 'f': trim_tracks   = TRIM_NONE; break;
+      case 'f': new_trim_tracks   = TRIM_NONE; break;
       // pregap
       case 'p': move_pretrack = 1; break;
 
@@ -235,6 +237,10 @@ int main(int argc, char **argv) {
       default: break;
     }
   }
+
+  // Reset the trim_tracks option now that all the options have been parsed
+  trim_tracks = new_trim_tracks;
+
   // Print simple welcome message
   ver_printf(1, "neorip v%s\n", VERSION);
 
@@ -318,32 +324,34 @@ int main(int argc, char **argv) {
       // Open up a file to dump stuff into
       FILE *tf = fopen(filename, "wb");
 
+      // Determine the number of sectors to write depending on the trimming options
+      unsigned trimmed_track_length = t->length;
+      // First track trimming
+      if (track == 1 && (trim_tracks & TRIM_FIRST))
+        trimmed_track_length -= 2 * t->sector_size;
+      if (trim_tracks & TRIM_ALL)
+        trimmed_track_length -= 2 * t->sector_size;
+
+
       // Add the proper header if the track is AUDIO
       if (t->track_mode == AUDIO) {
         switch (audio_output) {
           case AUD_WAV:
-            fwrite_wav_header(tf, t->length);
+            fwrite_wav_header(tf, trimmed_track_length);
             break;
           case AUD_AIFF:
-            fwrite_aiff_header(tf, t->length / t->sector_size);
+            fwrite_aiff_header(tf, trimmed_track_length / t->sector_size);
             break;
         }
       }
 
-      // Determine the number of sectors to write depending on the trimming options
-      unsigned copy_length = t->length;
-      // First track trimming
-      if (track == 1 && (trim_tracks & TRIM_FIRST))
-        copy_length -= 2;
-      if (trim_tracks & TRIM_ALL)
-        copy_length -= 2;
 
       // Write length bytes
       unsigned int b;
-      for (b = 0; b < copy_length; b += t->sector_size)
+      for (b = 0; b < trimmed_track_length; b += t->sector_size)
       {
         // Update status
-        ver_printf(1, "\b\b\b%02d%%", (int)( ((float) b / (float) t->length) * 100.0));
+        ver_printf(1, "\b\b\b%02d%%", (int)( ((float) b / (float) trimmed_track_length) * 100.0));
 
         // Read one sector of data
         uint8_t *buffer = malloc(sizeof(uint8_t) * t->sector_size);
