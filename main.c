@@ -318,9 +318,17 @@ int main(int argc, char **argv) {
         }
       }
 
+      // Determine the number of sectors to write depending on the trimming options
+      unsigned copy_length = t->length;
+      // First track trimming
+      if (track == 1 && (trim_tracks & TRIM_FIRST))
+        copy_length -= 2;
+      if (trim_tracks & TRIM_ALL)
+        copy_length -= 2;
+
       // Write length bytes
       unsigned int b;
-      for (b = 0; b < t->length; b += t->sector_size)
+      for (b = 0; b < copy_length; b += t->sector_size)
       {
         // Update status
         ver_printf(1, "\b\b\b%02d%%", (int)( ((float) b / (float) t->length) * 100.0));
