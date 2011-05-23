@@ -35,8 +35,14 @@
 #define DAT_BIN 1
 #define DAT_MAC 2
 
+#define TRIM_NONE -1
+#define TRIM_AUTO  0
+#define TRIM_FIRST 1
+#define TRIM_ALL   2
+
 /**
  * Whether only information about the file should be printed
+ * Should be 0 or 1 for false or true respectively
  */
 static int info_only = 0;
 
@@ -59,11 +65,25 @@ static int audio_output = AUD_WAV;
 
 /**
  * Whether or not audio tracks should be swapped
+ * Should be 0 or 1 for false or true respectively
  */
 static int swap_audio_output = 0;
 
 // An array of strings to represent the audio output types
 static char audio_output_str[4][5] = {"wav", "raw", "cda", "aiff"};
+
+/**
+ * Whether or not tracks should be trimmed
+ * Should be TRIM_NONE or TRIM_AUTO or TRIM_FIRST or TRIM_ALL or TRIM_FIRST & TRIM_ALL
+ */
+static int trim_tracks = TRIM_AUTO;
+
+/**
+ * Whether or not pretrack data should be moved to the end of the previous track
+ * Should be 0 or 1 for false or true respectively
+ */
+static int move_pretrack = 0;
+
 
 void usage(char *argv0) {
   // Used letters: a b c h i f m p q r s t T v
@@ -182,6 +202,20 @@ int main(int argc, char **argv) {
       case 'b': data_output = DAT_BIN; break;
       // Mac
       case 'm': data_output = DAT_MAC; break;
+
+      /*
+       * Track trimming options
+       */
+
+      // Since trim and trimall can be used together, they need to be OR'd on
+      // trim
+      case 't': trim_tracks  |= TRIM_FIRST; break;
+      // trimall
+      case 'T': trim_tracks  |= TRIM_ALL; break;
+      // full
+      case 'f': trim_tracks   = TRIM_NONE; break;
+      // pregap
+      case 'p': move_pretrack = 1; break;
 
 
       /*
