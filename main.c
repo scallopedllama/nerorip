@@ -250,6 +250,18 @@ int main(int argc, char **argv) {
 
     // Data track information
     ver_printf(1, "Saving data tracks as %s files.\n", data_output_str[data_output]);
+
+    // Data trimming information
+    if (trim_tracks == TRIM_NONE)
+      ver_printf(1, "Not trimming any track data.\n");
+    else {
+      int trim_first = (trim_tracks & TRIM_FIRST) ? 2 : 0;
+      int trim_all = (trim_tracks & TRIM_ALL) ? 2 : 0;
+      ver_printf(1, "Trimming %d sectors from first track and %d sectors from all other tracks\n", trim_first + trim_all, trim_all);
+    }
+
+    // Moving pretrack
+    if (move_pretrack) ver_printf(1, "Appending all tracks' pregap data to the end of the previous track\n");
   }
 
   // Now that all the getopt options have been parsed, that only leaves the input file and output directory.
