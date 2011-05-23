@@ -27,7 +27,7 @@
 #include <stdarg.h> // for printf wrapper
 
 #define WEBSITE "https://github.com/scallopedllama/nerorip"
-#define VERSION "0.2"
+#define VERSION "0.4"
 
 
 /**
