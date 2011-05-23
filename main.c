@@ -35,8 +35,7 @@
 #define DAT_BIN 1
 #define DAT_MAC 2
 
-#define TRIM_NONE -1
-#define TRIM_AUTO  0
+#define TRIM_NONE  0
 #define TRIM_FIRST 1
 #define TRIM_ALL   2
 
@@ -74,9 +73,9 @@ static char audio_output_str[4][5] = {"wav", "raw", "cda", "aiff"};
 
 /**
  * Whether or not tracks should be trimmed
- * Should be TRIM_NONE or TRIM_AUTO or TRIM_FIRST or TRIM_ALL or TRIM_FIRST & TRIM_ALL
+ * Should be TRIM_NONE or TRIM_FIRST or TRIM_ALL or TRIM_FIRST & TRIM_ALL
  */
-static int trim_tracks = TRIM_AUTO;
+static int trim_tracks = TRIM_FIRST;
 
 /**
  * Whether or not pretrack data should be moved to the end of the previous track
@@ -170,6 +169,7 @@ int main(int argc, char **argv) {
 
   // If any trim options are applied, the default falls back to TRIM_NONE
   int new_trim_tracks = TRIM_NONE;
+  int use_new_trim_tracks = 0;
 
   // Loop through all the passed options
   int c;
@@ -211,11 +211,20 @@ int main(int argc, char **argv) {
 
       // Since trim and trimall can be used together, they need to be OR'd on
       // trim
-      case 't': new_trim_tracks  |= TRIM_FIRST; break;
+      case 't':
+        new_trim_tracks  |= TRIM_FIRST;
+        use_new_trim_tracks = 1;
+        break;
       // trimall
-      case 'T': new_trim_tracks  |= TRIM_ALL; break;
+      case 'T':
+        new_trim_tracks  |= TRIM_ALL;
+        use_new_trim_tracks = 1;
+        break;
       // full
-      case 'f': new_trim_tracks   = TRIM_NONE; break;
+      case 'f':
+        new_trim_tracks   = TRIM_NONE;
+        use_new_trim_tracks = 1;
+        break;
       // pregap
       case 'p': move_pretrack = 1; break;
 
@@ -239,7 +248,8 @@ int main(int argc, char **argv) {
   }
 
   // Reset the trim_tracks option now that all the options have been parsed
-  trim_tracks = new_trim_tracks;
+  if (use_new_trim_tracks)
+    trim_tracks = new_trim_tracks;
 
   // Print simple welcome message
   ver_printf(1, "neorip v%s\n", VERSION);
@@ -348,10 +358,10 @@ int main(int argc, char **argv) {
 
       // Write length bytes
       unsigned int b;
-      for (b = 0; b < trimmed_track_length; b += t->sector_size)
+      for (b = 0; b < t->length; b += t->sector_size)
       {
         // Update status
-        ver_printf(1, "\b\b\b%02d%%", (int)( ((float) b / (float) trimmed_track_length) * 100.0));
+        ver_printf(1, "\b\b\b%02d%%", (int)( ((float) b / (float) t->length) * 100.0));
 
         // Read one sector of data
         uint8_t *buffer = malloc(sizeof(uint8_t) * t->sector_size);
@@ -396,12 +406,27 @@ int main(int argc, char **argv) {
           }
         }
 
-        // Write one sector of data skipping the header (if converting)
-        if (fwrite(buffer + header_length, sizeof(uint8_t), write_length, tf) != write_length) {
-          fprintf(stderr, "Error writing track: %s\n  Skipping this track.\n", strerror(errno));
-          fclose(tf);
-          free(buffer);
-          continue;
+
+        // Only write the sector if it isn't to be trimmed
+        if (b < trimmed_track_length) {
+
+          // Write one sector of data skipping the header (if converting)
+          if (fwrite(buffer + header_length, sizeof(uint8_t), write_length, tf) != write_length) {
+            fprintf(stderr, "Error writing track: %s\n  Skipping this track.\n", strerror(errno));
+            fclose(tf);
+            free(buffer);
+            continue;
+          }
+
+        }
+        // If the sector is to be trimmed, have a look and see if it might contain some useful data
+        else {
+          unsigned int d;
+          for (d = header_length; d < write_length; d++)
+            if (buffer[d]) {
+              ver_printf(1, "\n  WARNING: Might be trimming relevant data from the end of this track. Consider using the --full option.\n");
+              break;
+            }
         }
 
         // Clean up buffer
