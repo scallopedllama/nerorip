@@ -105,7 +105,7 @@ void usage(char *argv0) {
   printf("    -t, --trim\t\tTrim 2 sectors from the end of the first track\n");
   printf("    -T, --trimall\t\tTrim 2 sectors from the end of all tracks\n");
   printf("    -f, --full\t\tDo not cut any sectors from any tracks\n");
-  printf("    -p, --pregap\t\tAppend track's pregap data to the end of the previous track\n");
+//  printf("    -p, --pregap\t\tAppend track's pregap data to the end of the previous track\n");
   printf("  --trim and --trimall can be combined, resulting in 4 sectors being trimmed from the first track\n");
   printf("  If omitted, only the first track will have 2 sectors trimmed. See readme for more information\n\n");
 
@@ -277,7 +277,7 @@ int main(int argc, char **argv) {
     }
 
     // Moving pretrack
-    if (move_pretrack) ver_printf(1, "Appending all tracks' pregap data to the end of the previous track\n");
+//    if (move_pretrack) ver_printf(1, "Appending all tracks' pregap data to the end of the previous track\n");
   }
 
   // Now that all the getopt options have been parsed, that only leaves the input file and output directory.
@@ -443,7 +443,7 @@ int main(int argc, char **argv) {
   }
 
 quit:
-  // Cloes file and free ram
+  // Close file and free ram
   ver_printf(3, "Cleaning up\n");
   fclose(image_file);
   free_nrg_image(image);
