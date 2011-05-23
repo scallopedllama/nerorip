@@ -522,7 +522,7 @@ void nrg_print(int ver, nrg_image *image) {
   nrg_session *session;
   unsigned int s = 1, t = 1;
   for (session = image->first_session; session != NULL; session = session->next, s++) {
-    ver_printf(ver, "  Session %d has %d tracks:\n", s, session->number_tracks);
+    ver_printf(ver, "  Session %d has %d track(s):\n", s, session->number_tracks);
 
     // All tracks in this session
     nrg_track *track;

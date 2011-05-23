@@ -119,15 +119,15 @@ void usage(char *argv0) {
   printf("If output directory is omitted, image data is put in the same directory as the input file.\n\n");
 
   printf("For each track found in the image, nerorip will output the following:\n");
-  printf("  one iso file named \"data.sSStTT.[iso/bin]\" if the track is data and\n");
-  printf("  one wav file named \"audio.sSStTT.[wav/bin/cda/aiff]\" if the track is audio\n");
-  printf("where SS is the session number and TT is the track number.\n");
+  printf("  one iso file named \"tdataTT.[iso/bin]\" if the track is data and\n");
+  printf("  one wav file named \"taudioTT.[wav/bin/cda/aiff]\" if the track is audio\n");
+  printf("where TT is the track number.\n");
   printf("Also, for each session in the image, nerorip will output one cue file.\n\n");
 
   printf("For example, if your disc image is like the following\n");
   printf("  Session 1:\n    Track 1: Audio\n    Track 2: Data\n  Session 2:\n    Track 1: Data\n");
   printf("nerorip will output the following files:\n");
-  printf("  audio.s01t01.wav, data.s01t02.iso, data.s02t03.iso, session01.cue, session02.cue\n");
+  printf("  taudio01.wav, tdata02.iso, tdata03.iso\n");
   printf("Note that the track number does not reset between sessions.\n\n");
 
   printf("Report all bugs at %s\nVersion %s\n", WEBSITE, VERSION);
