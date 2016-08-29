@@ -324,7 +324,7 @@ int nrg_parse(FILE *image_file, nrg_image *image) {
       nrg_session *session = image->last_session;
 
       // # tracks
-      assert(session->number_tracks == (fread32u(image_file) - 22) / 30);
+      assert(session->number_tracks == (chunk_id == DAOI) ? (fread32u(image_file) - 22) / 30) : (fread32u(image_file) - 22) / 42);
 
       // Skip UPC
       fseek(image_file, 14, SEEK_CUR);
